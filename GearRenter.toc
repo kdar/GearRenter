@@ -1,0 +1,14 @@
+## Interface: 60000
+## Title: GearRenter
+## Notes: Helps in buying/selling gear to keep it on rent.
+## SavedVariables: GearRenterDB
+## Author: Outroot
+## Version: 1
+## X-Curse-Packaged-Version: v1
+## X-Curse-Project-Name: GearRenter
+## X-Curse-Project-ID: gearrenter
+## X-Curse-Repository-ID: wow/GearRenter/mainline
+
+embeds.xml
+GearRenter.lua
+statemachine.lua
