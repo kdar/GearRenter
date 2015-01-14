@@ -129,20 +129,23 @@ function GR:Rebuy(input)
   end
 
   self.queue = {}
-  for slotID=0,19 do
+  for slotID=1,19 do
     money, itemCount, refundSec, currecycount, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
     _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
     if currencyNames[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
       local itemID = GetInventoryItemID("player", slotID)
-      itemName, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)        
+      _, itemLink, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)   
+      itemID = string.match(itemLink, "item:(%d+)")     
 
       for x=1,GetMerchantNumItems() do
-        local item, _, _, _, _, _, _ = GetMerchantItemInfo(x)
-        if item == itemName then
+        --local item, _, _, _, _, _, _ = GetMerchantItemInfo(x)
+        local link = GetMerchantItemLink(x)
+        local id = string.match(link, "item:(%d+)")  
+        if itemID == id then
           --self:Print(string.format("Selling/buying/equipping %s", itemName))
           table.insert(self.queue, {ContainerRefundItemPurchase, -2, slotID})
           table.insert(self.queue, {BuyMerchantItem, x, 1})
-          table.insert(self.queue, {EquipItemByName, item})
+          table.insert(self.queue, {EquipItemByName, link})
         end
       end
     end

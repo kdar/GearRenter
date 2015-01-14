@@ -14,8 +14,3 @@ If you have it rented out, you can just sell it back.
 
 This will not sell gear that has enchants on it. 
 
-### Bugs
-
-Right now it doesn't always finish buying/selling. It works currently using a state machine, and advancing the state
-machine when events fire. But this messes up sometimes. I'm thinking about having a timer that polls whether the particular
-item is sold, whether it was bought, and whether it was equipped, and advance the state machine that way.
