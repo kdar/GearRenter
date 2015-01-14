@@ -5,21 +5,21 @@ local options = {
   handler = GR,
   type = 'group',
   args = {
-  	enable = {
-  		type = 'toggle',
-  		order = 1,
-  		name = 'Enabled',
-  		desc = 'Enable or disable this addon.',
-  		set = function(info, val) if (val) then GR:Enable() else GR:Disable() end end,
-  		get = function(info) return GR.enabledState end,
-  	},
+    enable = {
+      type = 'toggle',
+      order = 1,
+      name = 'Enabled',
+      desc = 'Enable or disable this addon.',
+      set = function(info, val) if (val) then GR:Enable() else GR:Disable() end end,
+      get = function(info) return GR.enabledState end,
+    },
   },
 }
 
 local defaults = {
-	profile = {
-		
-	}
+  profile = {
+    
+  }
 }
 
 function slice(list, index) 
@@ -28,11 +28,11 @@ end
 
 function GR:OnInitialize()
   self.db = LibStub("AceDB-3.0"):New("GearRenterDB", defaults)
-	local parent = LibStub("AceConfig-3.0"):RegisterOptionsTable("GearRenter", options, {"GearRenter", "gr"})
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("GearRenter", "GearRenter")
-	profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
-	LibStub("AceConfig-3.0"):RegisterOptionsTable("GearRenter.profiles", profiles)
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("GearRenter.profiles", "Profiles", "GearRenter")
+  local parent = LibStub("AceConfig-3.0"):RegisterOptionsTable("GearRenter", options, {"GearRenter", "gr"})
+  LibStub("AceConfigDialog-3.0"):AddToBlizOptions("GearRenter", "GearRenter")
+  profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
+  LibStub("AceConfig-3.0"):RegisterOptionsTable("GearRenter.profiles", profiles)
+  LibStub("AceConfigDialog-3.0"):AddToBlizOptions("GearRenter.profiles", "Profiles", "GearRenter")
 
   self.queue = {}
   self.nextQueue = function() 
@@ -42,11 +42,11 @@ function GR:OnInitialize()
       args = slice(item, 2)
 
       -- if func == ContainerRefundItemPurchase then
-      -- 	GR:Print("ContainerRefundItemPurchase")
+      --  GR:Print("ContainerRefundItemPurchase")
       -- elseif func == BuyMerchantItem then
-      -- 	GR:Print("BuyMerchantItem")
+      --  GR:Print("BuyMerchantItem")
       -- elseif func == EquipItemByName then
-      -- 	GR:Print("EquipItemByName")
+      --  GR:Print("EquipItemByName")
       -- end
 
       func(unpack(args))
@@ -54,7 +54,7 @@ function GR:OnInitialize()
       self.machine:set('none')
     end
   end
-	self.machine = self.statemachine.create({
+  self.machine = self.statemachine.create({
     initial = 'none',
     events = {
       {name = 'start', from = {'none', 'started', 'sold', 'bought', 'equipped'}, to = 'started'},
@@ -81,14 +81,14 @@ function GR:OnInitialize()
         GR:nextQueue()
       end,
     }
-	})
+  })
 end
 
 function GR:OnEnable()
   -- self:RegisterEvent("MERCHANT_SHOW")
   --self:RegisterEvent("BAG_UPDATE")
-  self:RegisterEvent("UNIT_INVENTORY_CHANGED")
   --self:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
+  self:RegisterEvent("UNIT_INVENTORY_CHANGED")  
   self:RegisterChatCommand("rebuy", "Rebuy")
 end
 
@@ -98,63 +98,65 @@ function GR:OnDisable()
 end
 
 function GR:UNIT_INVENTORY_CHANGED(event, unitID)
-	if self.machine:is('started') then
-    self.machine:sell()  
-  elseif self.machine:is('sold') then
-  	self.machine:buy()
-  elseif self.machine:is('bought') then
-   	self.machine:equip()
-  elseif self.machine:is('equipped') then
-    self.machine:start()
-	end
+  self:ScheduleTimer(function()
+    if self.machine:is('started') then
+      self.machine:sell()  
+    elseif self.machine:is('sold') then
+      self.machine:buy()
+    elseif self.machine:is('bought') then
+      self.machine:equip()
+    elseif self.machine:is('equipped') then
+      self.machine:start()
+    end
+  end, 0.5)
 end
 
 function GR:Rebuy(input)
-	if not MerchantFrame:IsShown() then
-		self:Print("Not at a merchant.")
-		return
-	end
+  if not MerchantFrame:IsShown() then
+    self:Print("Not at a merchant.")
+    return
+  end
 
-	local currencies = {GetMerchantCurrencies()}
-	local currencyNames = {}
-	for _, currency in ipairs(currencies) do
-		if currency ~= CONQUEST_CURRENCY and currency ~= HONOR_CURRENCY then
-			self:Print("This merchant is not a conquest or honor vendor.")
-	    return
-		end
-		name, _, _, _, _, _, _ = GetCurrencyInfo(currency)
-		currencyNames[name] = true
-	end
+  local currencies = {GetMerchantCurrencies()}
+  local currencyNames = {}
+  for _, currency in ipairs(currencies) do
+    if currency ~= CONQUEST_CURRENCY and currency ~= HONOR_CURRENCY then
+      self:Print("This merchant is not a conquest or honor vendor.")
+      return
+    end
+    name, _, _, _, _, _, _ = GetCurrencyInfo(currency)
+    currencyNames[name] = true
+  end
 
-	self.queue = {}
+  self.queue = {}
   for slotID=0,19 do
-	  money, itemCount, refundSec, currecycount, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
-	  _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
-	  if currencyNames[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
-    	local itemID = GetInventoryItemID("player", slotID)
-    	itemName, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)      	
+    money, itemCount, refundSec, currecycount, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
+    _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
+    if currencyNames[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
+      local itemID = GetInventoryItemID("player", slotID)
+      itemName, _, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)        
 
       for x=1,GetMerchantNumItems() do
-				local item, _, _, _, _, _, _ = GetMerchantItemInfo(x)
-				if item == itemName then
-					--self:Print(string.format("Selling/buying/equipping %s", itemName))
-					table.insert(self.queue, {ContainerRefundItemPurchase, -2, slotID})
-					table.insert(self.queue, {BuyMerchantItem, x, 1})
-					table.insert(self.queue, {EquipItemByName, item})
-				end
-			end
-	  end
-	end
-	
-	self.machine:start()
+        local item, _, _, _, _, _, _ = GetMerchantItemInfo(x)
+        if item == itemName then
+          --self:Print(string.format("Selling/buying/equipping %s", itemName))
+          table.insert(self.queue, {ContainerRefundItemPurchase, -2, slotID})
+          table.insert(self.queue, {BuyMerchantItem, x, 1})
+          table.insert(self.queue, {EquipItemByName, item})
+        end
+      end
+    end
+  end
+  
+  self.machine:start()
 
  --  delay = 1
-	-- for _,qi in ipairs(queue) do
+  -- for _,qi in ipairs(queue) do
  --    self:ScheduleTimer(function()
  --      func = qi[1]
  --      args = slice(qi, 2)
  --      func(unpack(args))
  --    end, delay)
  --    delay = delay + 2
-	-- end
+  -- end
 end
