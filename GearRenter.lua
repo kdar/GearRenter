@@ -34,7 +34,8 @@ function GearRenter:OnInitialize()
   LibStub("AceConfig-3.0"):RegisterOptionsTable("GearRenter.profiles", profiles)
   LibStub("AceConfigDialog-3.0"):AddToBlizOptions("GearRenter.profiles", "Profiles", "GearRenter")
 
-  self.queue = {}  
+  self.queue = {}
+  self.checkers = {}
   -- self.machine = self.statemachine.create({
   --   initial = 'none',
   --   events = {
@@ -68,6 +69,10 @@ end
 function GearRenter:NextQueue()
   if #self.queue > 0 then
     item = table.remove(self.queue, 1)
+    if item == nil then
+      return
+    end
+
     func = item[1]
     args = slice(item, 2)
 
@@ -86,14 +91,19 @@ function GearRenter:NextQueue()
 end
 
 function GearRenter:OnEnable()
-  --self:RegisterEvent("UNIT_INVENTORY_CHANGED")  
+  --self:RegisterEvent("UNIT_INVENTORY_CHANGED")
   self:RegisterChatCommand("rebuy", "Rebuy")
+  -- self:RegisterEvent("BAG_UPDATE_DELAYED")
 end
 
 function GearRenter:OnDisable()
   self:UnregisterChatCommand("rebuy")
   --self:UnregisterEvent("UNIT_INVENTORY_CHANGED")
 end
+
+-- function GearRenter:BAG_UPDATE_DELAYED()
+--   self:Print("CALLLLEEEDDDD")
+-- end
 
 -- function GearRenter:UNIT_INVENTORY_CHANGED(event, unitID)
 --   self:ScheduleTimer(function()
@@ -119,22 +129,28 @@ function GearRenter:Rebuy()
     return
   end
 
-  local currencies = {GetMerchantCurrencies()}
-  local currencyNames = {}
-  for _, currency in ipairs(currencies) do
+  local merchCurrencies = {GetMerchantCurrencies()}
+  local currencies = {}
+  for _, currency in ipairs(merchCurrencies) do
     if currency ~= CONQUEST_CURRENCY and currency ~= HONOR_CURRENCY then
       self:Print("This merchant is not a conquest or honor vendor.")
       return
     end
     name, _, _, _, _, _, _ = GetCurrencyInfo(currency)
-    currencyNames[name] = true
+    currencies[name] = currency
   end
 
   self.queue = {}
-  for slotID=1,19 do
+  self.checkers = {function()
+    return true
+  end}
+  for slotID=1,18 do
     money, itemCount, refundSec, currecycount, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
-    _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
-    if currencyNames[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
+    _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)    
+    if currencies[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
+      currentPlayerCurrency = select(2, GetCurrencyInfo(currencies[currencyName]))
+      _, equippedIlvl = GetAverageItemLevel()
+
       local itemID = GetInventoryItemID("player", slotID)
       _, itemLink, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)   
       itemID = string.match(itemLink, "item:(%d+)")     
@@ -146,10 +162,52 @@ function GearRenter:Rebuy()
         if itemID == id then
           --self:Print(string.format("Selling/buying/equipping %s", itemName))
           table.insert(self.queue, {ContainerRefundItemPurchase, -2, slotID})
+          table.insert(self.checkers, (function(currentPlayerCurrency, currencyName)
+            return function()
+              amount = select(2, GetCurrencyInfo(currencies[currencyName]))
+              if currentPlayerCurrency < amount then
+                return true
+              end
+
+              return false
+            end
+          end)(currentPlayerCurrency, currencyName))
           table.insert(self.queue, {BuyMerchantItem, x, 1})
-          table.insert(self.queue, {EquipItemByName, link})
-          -- doing this twice actually helps it to work
-          table.insert(self.queue, {EquipItemByName, link})
+          table.insert(self.checkers, (function(currentPlayerCurrency, currencyName)
+            return function()
+              amount = select(2, GetCurrencyInfo(currencies[currencyName]))
+              if amount == currentPlayerCurrency then
+                return true
+              end
+
+              return false
+            end
+          end)(currentPlayerCurrency, currencyName))
+          --table.insert(self.queue, {EquipItemByName, link})
+          table.insert(self.queue, {function(link, slotID)
+            EquipItemByName(link, slotID)
+            -- PickupItem(link)
+            -- EquipCursorItem(slotID)
+            -- AutoEquipCursorItem()
+          end, link, slotID})
+          table.insert(self.checkers, (function(link, slotID, equippedIlvl)
+            return function()
+              --truth = GetInventoryItemID("player", slotID) ~= nil
+              -- Testing for the average item level seems to be more consistent
+              -- than actually looking if there is something in the slot. All
+              -- the APIs that get slot info seem to indicate that an item
+              -- is in the slot when there isn't any.
+              _, ilvl = GetAverageItemLevel()
+              truth = ilvl == equippedIlvl
+              if truth then
+                return truth
+              end
+
+              -- attempt to equip again if check failed.
+              EquipItemByName(link, slotID)
+              return truth
+            end
+          end)(link, slotID, equippedIlvl))
         end
       end
     end
@@ -158,19 +216,27 @@ function GearRenter:Rebuy()
   -- self.machine:start()
 
   GearRenterProgressFrame:Show();
-  GearRenterProgressBar:SetMinMaxValues(0, 1);
-  local queueLen = #self.queue;  
+  GearRenterProgressBar:SetMinMaxValues(0, 1)
+  GearRenterProgressBar:SetValue(0)
+  local queueLen = #self.queue;
 
   self.repeatTimer = self:ScheduleRepeatingTimer(function()
+    checker = self.checkers[1]
+    if checker() then
+      table.remove(self.checkers, 1)
+    else
+      return
+    end
+
     self:NextQueue()
 
     local progress = 1 - (#self.queue/queueLen)
     GearRenterProgressBar:SetValue(progress)
     GearRenterProgressBarText:SetText("Renting "..floor(progress * 100).."%")
 
-    if #self.queue <= 0 then
+    if #self.queue <= 0 and #self.checkers <= 0 then
       self:CancelTimer(self.repeatTimer)
       GearRenterProgressFrame:Hide();
     end
-  end, 1)
+  end, 0.3)
 end
