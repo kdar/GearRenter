@@ -104,4 +104,4 @@ function statemachine:todot(filename)
   dotfile:close()
 end
 
-GR.statemachine = statemachine
+GearRenter.statemachine = statemachine

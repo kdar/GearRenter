@@ -12,3 +12,4 @@
 embeds.xml
 GearRenter.lua
 statemachine.lua
+GearRenter.xml

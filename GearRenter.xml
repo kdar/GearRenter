@@ -1,0 +1,188 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
+
+	<Button name="GearRenterItemButtonTemplate" hidden="false" virtual="true">
+		<Size x="1" y="16"/>
+		<ButtonText name="$parentText" text="">
+			<Anchors>
+				<Anchor point="LEFT">
+					<Offset x="5" y="1"/>
+				</Anchor>
+				<Anchor point="RIGHT">
+					<Offset x="-5" y="1"/>
+				</Anchor>
+			</Anchors>
+		</ButtonText>
+		<NormalFont style="GameFontNormalLeft"/>
+		<HighlightFont style="GameFontHighlightLeft"/>
+		<DisabledFont style="GameFontDisableLeft"/>
+		<Scripts>
+			<OnClick>
+			</OnClick>
+		</Scripts>
+	</Button>
+
+	<Frame name="GearRenterFrame" parent="MerchantFrame">
+		<Size x="2" y="46"/>
+		<Anchors>
+			<Anchor point="TOPLEFT" relativePoint="TOPRIGHT">
+				<Offset x="0" y="-50"/>
+			</Anchor>
+		</Anchors>
+		<Backdrop name="$parentBackdrop" bgFile="Interface\MERCHANTFRAME\UI-BuyBack-TopLeft" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
+			<EdgeSize>
+				<AbsValue val="24"/>
+			</EdgeSize>
+			<TileSize>
+				<AbsValue val="256"/>
+			</TileSize>
+			<BackgroundInsets>
+				<AbsInset left="2" right="3" top="2" bottom="4"/>
+			</BackgroundInsets>
+		</Backdrop>
+		<Frames>
+			<Button name="$parentRebuyButton">
+				<Size x="32" y="32"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativePoint="TOPRIGHT">
+						<Offset x="0" y="0"/>
+					</Anchor>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture name="$parentBackground" file="Interface\SpellBook\SpellBook-SkillLineTab">
+							<Size x="64" y="64"/>
+							<Anchors>
+								<Anchor point="TOPLEFT">
+									<Offset x="-3" y="11"/>
+								</Anchor>
+							</Anchors>
+						</Texture>
+					</Layer>
+					<Layer level="ARTWORK">
+            <Texture name="$parentBackground" file="Interface\ICONS\Ability_Creature_Disease_05">
+							<Size x="32" y="32"/>
+							<Anchors>
+								<Anchor point="TOPLEFT">
+									<Offset x="0" y="0"/>
+								</Anchor>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnLoad>
+					</OnLoad>
+					<OnClick>
+						GearRenter:Rebuy_OnClick(self)
+					</OnClick>
+					<OnReceiveDrag>
+					</OnReceiveDrag>
+					<OnShow>
+					</OnShow>
+					<OnEnter>
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+						GameTooltip:SetText("Click to rebuy all your rented PVP gear.")
+					</OnEnter>
+					<OnLeave>
+						GameTooltip:Hide()
+					</OnLeave>
+				</Scripts>
+				<NormalTexture/>
+				<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				self:SetBackdropColor(0.4, 0.4, 0.4, 1)
+				self:SetBackdropBorderColor(0.7, 0.7, 0.7, 0)
+			</OnLoad>
+			<OnShow>
+			</OnShow>
+			<OnHide>
+			</OnHide>
+			<OnUpdate>
+			</OnUpdate>
+		</Scripts>
+	</Frame>
+
+	<Frame name="GearRenterProgressFrame" toplevel="true" parent="UIParent" movable="true" clampedToScreen="true" enableMouse="true" frameStrata="HIGH" hidden="true">
+    <Size>
+        <AbsDimension x="217" y="20"/>
+    </Size>
+    <Anchors>
+        <Anchor point="BOTTOM">
+            <Offset>
+                <AbsDimension x="0" y="160"/>
+            </Offset>
+        </Anchor>
+    </Anchors>
+    <TitleRegion setAllPoints="true"/>
+    <Layers>
+        <Layer level="BACKGROUND">
+            <Texture setAllPoints="true">
+                <Color r="0" g="0" b="0" a="0"/>
+            </Texture>        
+        </Layer>
+    </Layers>
+     
+    <Frames>
+        <StatusBar name="GearRenterProgressBar" drawLayer="BORDER" virtual="true" minValue="0" maxValue="1" defaultValue="0">
+            <Size>
+                <AbsDimension x="195" y="20"/>
+            </Size>
+            <Anchors>
+                <Anchor point="TOPLEFT">
+                    <Offset>
+                        <AbsDimension x="0" y="0"/>
+                    </Offset>
+                </Anchor>
+            </Anchors>
+            <Layers>
+                <Layer level="BACKGROUND">
+                    <Texture setAllPoints="true">
+                        <Color r="0" g="0" b="0" a="0.5"/>
+                    </Texture>        
+                </Layer>
+                <Layer level="ARTWORK">
+                    <FontString name="$parentText" inherits="GameFontHighlight" text="Renting">
+                        <Size>
+                            <AbsDimension x="185" y="28"/>
+                        </Size>
+                        <Anchors>
+                            <Anchor point="TOP">
+                                <Offset>
+                                    <AbsDimension x="0" y="5"/>
+                                </Offset>
+                            </Anchor>
+                        </Anchors>
+                    </FontString>
+                </Layer>
+            </Layers>
+            <Frames>
+                <Frame>
+                    <Size>
+                        <AbsDimension x="203" y="24"/>
+                    </Size>
+                    <Anchors>
+                        <Anchor point="CENTER"/>
+                    </Anchors>
+                    <Backdrop edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
+                        <EdgeSize>
+                            <AbsValue val="16"/>
+                        </EdgeSize>
+                        <TileSize>
+                            <AbsValue val="16"/>
+                        </TileSize>
+                        <BackgroundInsets>
+                            <AbsInset left="3" right="5" top="3" bottom="5"/>
+                        </BackgroundInsets>
+                    </Backdrop>
+                </Frame>
+            </Frames>
+            <BarTexture file="Interface\TargetingFrame\UI-StatusBar"/>
+            <BarColor r="1.0" g="0.7" b="0.0"/>
+        </StatusBar>
+    </Frames>
+  </Frame>
+</Ui>
