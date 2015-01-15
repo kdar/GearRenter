@@ -3,10 +3,10 @@
 ## Notes: Helps in buying/selling gear to keep it on rent.
 ## SavedVariables: GearRenterDB
 ## Author: Outroot
-## Version: 1
-## X-Curse-Packaged-Version: v1
+## Version: 0.3
+## X-Curse-Packaged-Version: v0.3
 ## X-Curse-Project-Name: GearRenter
-## X-Curse-Project-ID: gearrenter
+## X-Curse-Project-ID: gear-renter
 ## X-Curse-Repository-ID: wow/GearRenter/mainline
 
 embeds.xml
