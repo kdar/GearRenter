@@ -120,7 +120,6 @@ function GearRenter:OnInitialize()
   LibStub("AceConfigDialog-3.0"):AddToBlizOptions("GearRenter.profiles", "Profiles", "GearRenter")
 
   self.queue = {}
-  self.checkers = {}
   self.alerts = {
     {
       shown = false,
@@ -174,7 +173,7 @@ end
 
 function GearRenter:NextQueue()
   if #self.queue > 0 then
-    item = table.remove(self.queue, 1)
+    item = self.queue[1]
     if item == nil then
       return
     end
@@ -190,10 +189,16 @@ function GearRenter:NextQueue()
     --  GearRenter:Print("EquipItemByName")
     -- end
 
-    func(unpack(args))
+    ret = func(unpack(args))
+    if ret then
+      table.remove(self.queue, 1)
+      return true
+    end
   else
     -- self.machine:set('none')
   end
+
+  return false
 end
 
 function GearRenter:OnEnable()
@@ -336,10 +341,10 @@ function GearRenter:Rebuy()
     currencies[name] = currency
   end
 
+  -- Cancel the timer if it is still going on from before.
+  self:CancelTimer(self.repeatTimer)
+
   self.queue = {}
-  self.checkers = {function()
-    return true
-  end}
   for slotID=1,18 do
     money, itemCount, refundSec, currecycount, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
     _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)    
@@ -357,53 +362,54 @@ function GearRenter:Rebuy()
         local id = string.match(link, "item:(%d+)")  
         if itemID == id then
           --self:Print(string.format("Selling/buying/equipping %s", itemName))
-          table.insert(self.queue, {ContainerRefundItemPurchase, -2, slotID})
-          table.insert(self.checkers, (function(currentPlayerCurrency, currencyName)
-            return function()
-              amount = select(2, GetCurrencyInfo(currencies[currencyName]))
-              if currentPlayerCurrency < amount then
-                return true
-              end
-
-              return false
+          table.insert(self.queue, {function(slotID) 
+            ContainerRefundItemPurchase(-2, slotID)
+            return true
+          end, slotID})
+          table.insert(self.queue, {function(currentPlayerCurrency, currencyName)
+            amount = select(2, GetCurrencyInfo(currencies[currencyName]))
+            if currentPlayerCurrency < amount then
+              return true
             end
-          end)(currentPlayerCurrency, currencyName))
-          table.insert(self.queue, {BuyMerchantItem, x, 1})
-          table.insert(self.checkers, (function(currentPlayerCurrency, currencyName)
-            return function()
-              amount = select(2, GetCurrencyInfo(currencies[currencyName]))
-              if amount == currentPlayerCurrency then
-                return true
-              end
 
-              return false
+            return false
+          end, currentPlayerCurrency, currencyName})
+          table.insert(self.queue, {function(index)
+            BuyMerchantItem(index, 1)
+            return true
+          end, x})
+          table.insert(self.queue, {function(currentPlayerCurrency, currencyName)
+            amount = select(2, GetCurrencyInfo(currencies[currencyName]))
+            if amount == currentPlayerCurrency then
+              return true
             end
-          end)(currentPlayerCurrency, currencyName))
+
+            return false
+          end, currentPlayerCurrency, currencyName})
           --table.insert(self.queue, {EquipItemByName, link})
-          table.insert(self.queue, {function(link, slotID)
-            EquipItemByName(link, slotID)
-            -- PickupItem(link)
-            -- EquipCursorItem(slotID)
-            -- AutoEquipCursorItem()
-          end, link, slotID})
-          table.insert(self.checkers, (function(link, slotID, equippedIlvl)
-            return function()
-              --truth = GetInventoryItemID("player", slotID) ~= nil
-              -- Testing for the average item level seems to be more consistent
-              -- than actually looking if there is something in the slot. All
-              -- the APIs that get slot info seem to indicate that an item
-              -- is in the slot when there isn't any.
-              _, ilvl = GetAverageItemLevel()
-              truth = ilvl == equippedIlvl
-              if truth then
-                return truth
-              end
-
-              -- attempt to equip again if check failed.
-              EquipItemByName(link, slotID)
+          -- table.insert(self.queue, {function(link, slotID)
+          --   EquipItemByName(link, slotID)
+          --   -- PickupItem(link)
+          --   -- EquipCursorItem(slotID)
+          --   -- AutoEquipCursorItem()
+          --   return true
+          -- end, link, slotID})
+          table.insert(self.queue, {function(link, slotID, equippedIlvl)
+            --truth = GetInventoryItemID("player", slotID) ~= nil
+            -- Testing for the average item level seems to be more consistent
+            -- than actually looking if there is something in the slot. All
+            -- the APIs that get slot info seem to indicate that an item
+            -- is in the slot when there isn't any.
+            _, ilvl = GetAverageItemLevel()
+            truth = (ilvl == equippedIlvl) and GetInventoryItemID("player", slotID) ~= nil
+            if truth then
+              GearRenter:Print("equipped")
               return truth
             end
-          end)(link, slotID, equippedIlvl))
+
+            EquipItemByName(link, slotID)
+            return truth
+          end, link, slotID, equippedIlvl})
         end
       end
     end
@@ -416,6 +422,7 @@ function GearRenter:Rebuy()
       self.alerts[i].shown = false
       self.alerts[i].enteringWorld = 0
     end
+    return true
   end})
 
   GearRenterProgressFrame:Show();
@@ -424,20 +431,13 @@ function GearRenter:Rebuy()
   local queueLen = #self.queue;
 
   self.repeatTimer = self:ScheduleRepeatingTimer(function()
-    checker = self.checkers[1]
-    if checker() then
-      table.remove(self.checkers, 1)
-    else
-      return
-    end
-
     self:NextQueue()
 
     local progress = 1 - (#self.queue/queueLen)
     GearRenterProgressBar:SetValue(progress)
     GearRenterProgressBarText:SetText("Renting "..floor(progress * 100).."%")
 
-    if #self.queue <= 0 and #self.checkers <= 0 then
+    if #self.queue <= 0 then
       self:CancelTimer(self.repeatTimer)
       GearRenterProgressFrame:Hide();
     end
