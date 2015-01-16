@@ -9,16 +9,101 @@ local options = {
       type = 'toggle',
       order = 1,
       name = 'Enabled',
+      width = 'double',
       desc = 'Enable or disable this addon.',
-      set = function(info, val) if (val) then GearRenter:Enable() else GearRenter:Disable() end end,
-      get = function(info) return GearRenter.enabledState end,
+      get = function(info) return GearRenter.db.profile.enabled end,
+      set = function(info, val) if (val) then GearRenter:Enable() else GearRenter:Disable() end end,      
+    },
+    newline1 = {type = "description", order = 2, name = "\n"},
+    alertgroup1 = {
+      name = 'Expire alert 1',
+      type = 'group',
+      inline = true,
+      order = 3,
+      args = {
+        alertEnabled = {
+          type = 'toggle',
+          order = 1,
+          name = 'Enable',
+          width = 'double',
+          desc = 'This will pop up an alert window when one of your pieces of gear is about to expire.',
+          get = function(info) return GearRenter.db.profile.alerts[1].enabled end,
+          set = function(info, val) 
+            GearRenter:EnableAlert(1, val)
+            GearRenter.alerts[1].shown = false
+          end,          
+        },
+        newline2 = {type = "description", order = 2, name = "\n"},
+        alertMinutes = {
+          type = 'range',
+          order = 3,
+          name = 'Remaining minutes',
+          width = 'double',
+          desc = 'The remaining amount of minutes the gear has to be at in order to trigger the alert.',
+          min = 5,
+          max = 120,
+          step = 1,
+          get = function(info) return GearRenter.db.profile.alerts[1].minutes end,
+          set = function(info, val) 
+            GearRenter.db.profile.alerts[1].minutes = val
+            GearRenter.alerts[1].shown = false
+          end,
+        }
+      }
+    },
+    newline1 = {type = "description", order = 4, name = "\n"},
+    alertgroup2 = {
+      name = 'Expire alert 2',
+      type = 'group',
+      inline = true,
+      order = 5,
+      args = {
+        alertEnabled = {
+          type = 'toggle',
+          order = 1,
+          name = 'Enable',
+          width = 'double',
+          desc = 'This will pop up an alert window when one of your pieces of gear is about to expire.',
+          get = function(info) return GearRenter.db.profile.alerts[2].enabled end,
+          set = function(info, val) 
+            GearRenter:EnableAlert(2, val)
+            GearRenter.alerts[2].shown = false
+          end,          
+        },
+        newline2 = {type = "description", order = 2, name = "\n"},
+        alertMinutes = {
+          type = 'range',
+          order = 3,
+          name = 'Remaining minutes',
+          width = 'double',
+          desc = 'The remaining amount of minutes the gear has to be at in order to trigger the alert.',
+          min = 5,
+          max = 120,
+          step = 1,
+          get = function(info) return GearRenter.db.profile.alerts[2].minutes end,
+          set = function(info, val) 
+            GearRenter.db.profile.alerts[2].minutes = val
+            GearRenter.alerts[2].shown = false
+          end,
+        }
+      }
     },
   },
 }
 
 local defaults = {
   profile = {
-    
+    enabled = true,
+    alerts = {
+      {
+        enabled = true,
+        minutes = 30
+      },
+      {
+        enabled = true,
+        minutes = 15
+      }
+    }
   }
 }
 
@@ -36,6 +121,27 @@ function GearRenter:OnInitialize()
 
   self.queue = {}
   self.checkers = {}
+  self.alerts = {
+    {
+      shown = false,
+      enteringWorld = 0
+    },
+    {
+      shown = false,
+      enteringWorld = 0
+    }
+  }
+
+  StaticPopupDialogs["GEAR_RENTER_ALERT"] = {
+    text = "Your PVP gear will expire in |cffffff00%d|r minutes!",
+    button1 = "Ok",
+    timeout = 0,
+    whileDead = true,
+    hideOnEscape = true,
+    sound = 'levelup2',
+    preferredIndex = 3,  -- avoid some UI taint, see http://www.wowace.com/announcements/how-to-avoid-some-ui-taint/
+  }
+
   -- self.machine = self.statemachine.create({
   --   initial = 'none',
   --   events = {
@@ -92,13 +198,48 @@ end
 
 function GearRenter:OnEnable()
   --self:RegisterEvent("UNIT_INVENTORY_CHANGED")
+  self:RegisterEvent("PLAYER_ENTERING_WORLD")
   self:RegisterChatCommand("rebuy", "Rebuy")
   -- self:RegisterEvent("BAG_UPDATE_DELAYED")
+
+  --GearRenterFrame:SetParent(MerchantFrame)
+  GearRenterFrame:Show()
+
+  for i=1,#self.db.profile.alerts do
+    self:EnableAlert(i, self.db.profile.alerts[i].enabled)
+  end
+
+  self.db.profile.enabled = true
 end
 
 function GearRenter:OnDisable()
   self:UnregisterChatCommand("rebuy")
+  self:UnregisterEvent("PLAYER_ENTERING_WORLD")
   --self:UnregisterEvent("UNIT_INVENTORY_CHANGED")
+
+  --GearRenterFrame:SetParent(nil)
+  GearRenterFrame:Hide()
+
+  for i=1,#self.db.profile.alerts do
+    self:EnableAlert(i, false)
+  end
+
+  self.db.profile.enabled = false
+end
+
+function GearRenter:EnableAlert(which, enabled)
+  self.db.profile.alerts[which].enabled = enabled
+
+  if enabled then
+    if self.expiresTimer == nil then
+      self.expiresTimer = self:ScheduleRepeatingTimer("CheckExpires", 5)
+    end
+  else
+    if not self.db.profile.alerts[1].enabled and self.db.profile.alerts[1].enabled then
+      self:CancelTimer(self.expiresTimer)
+      self.expiresTimer = nil
+    end
+  end
 end
 
 -- function GearRenter:BAG_UPDATE_DELAYED()
@@ -118,6 +259,61 @@ end
 --     end
 --   end, 0.5)
 -- end
+
+function GearRenter:PLAYER_ENTERING_WORLD()
+  local instanceType = select(2, IsInInstance())
+
+  if instanceType ~= "arena" then
+    for i=1,#self.alerts do
+      if self.alerts[i].enteringWorld > 0 then
+        self:Alert(i, self.alerts[i].enteringWorld)
+        self.alerts[i].enteringWorld = 0
+      end
+    end
+  end
+end
+
+function GearRenter:CheckExpires()
+  lowestSecs = nil
+  which = 1
+  for slotID=1,18 do
+    _, _, refundSec, _, _ = GetContainerItemPurchaseInfo(-2, slotID, true)
+
+    if self.db.profile.alerts[1].enabled and not self.alerts[1].shown and refundSec ~= nil and refundSec <= ((self.db.profile.alerts[1].minutes+1)*60) then
+      if lowestSecs == nil or refundSec < lowestSecs then
+        lowestSecs = refundSec
+        which = 1
+      end
+    end
+
+    if self.db.profile.alerts[2].enabled and not self.alerts[2].shown and refundSec ~= nil and refundSec <= ((self.db.profile.alerts[2].minutes+1)*60) then
+      if lowestSecs == nil or refundSec < lowestSecs then
+        lowestSecs = refundSec
+        which = 2
+      end
+    end
+  end
+
+  if lowestSecs ~= nil then
+    self:Alert(which, lowestSecs)
+  else
+    --self:Print("reset?")
+    --self.alerts[which].shown = false
+  end
+end
+
+function GearRenter:Alert(which, secs)
+  if not self.alerts[which].shown then
+    local instanceType = select(2, IsInInstance())
+    if instanceType == "arena" then
+      --self:Print("Gear is expiring!")
+      self.alerts[which].enteringWorld = secs
+    else
+      StaticPopup_Show("GEAR_RENTER_ALERT", secs / 60)
+      self.alerts[which].shown = true
+    end
+  end
+end
 
 function GearRenter:Rebuy_OnClick()
   self:Rebuy()
@@ -214,6 +410,13 @@ function GearRenter:Rebuy()
   end
   
   -- self.machine:start()
+
+  table.insert(self.queue, {function()
+    for i=1,#self.alerts do
+      self.alerts[i].shown = false
+      self.alerts[i].enteringWorld = 0
+    end
+  end})
 
   GearRenterProgressFrame:Show();
   GearRenterProgressBar:SetMinMaxValues(0, 1)
