@@ -345,12 +345,16 @@ function GearRenter:Rebuy()
   self:CancelTimer(self.repeatTimer)
 
   self.queue = {}
+  itemRentCount = 0
+  itemRentTotal = 0
   for slotID=1,18 do
     money, itemCount, refundSec, currecycount, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
     _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)    
     if currencies[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
       currentPlayerCurrency = select(2, GetCurrencyInfo(currencies[currencyName]))
       _, equippedIlvl = GetAverageItemLevel()
+
+      itemRentTotal = itemRentTotal + 1
 
       local itemID = GetInventoryItemID("player", slotID)
       _, itemLink, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)   
@@ -403,7 +407,7 @@ function GearRenter:Rebuy()
             _, ilvl = GetAverageItemLevel()
             truth = (ilvl == equippedIlvl) and GetInventoryItemID("player", slotID) ~= nil
             if truth then
-              GearRenter:Print("equipped")
+              itemRentCount = itemRentCount + 1
               return truth
             end
 
@@ -435,7 +439,7 @@ function GearRenter:Rebuy()
 
     local progress = 1 - (#self.queue/queueLen)
     GearRenterProgressBar:SetValue(progress)
-    GearRenterProgressBarText:SetText("Renting "..floor(progress * 100).."%")
+    GearRenterProgressBarText:SetText("Renting "..itemRentCount.."/"..itemRentTotal.." - "..floor(progress * 100).."%")
 
     if #self.queue <= 0 then
       self:CancelTimer(self.repeatTimer)
