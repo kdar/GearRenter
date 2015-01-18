@@ -1,0 +1,6 @@
+package-as: GearRenter
+
+manual-changelog: CHANGELOG.txt
+
+ignore:
+    - scripts

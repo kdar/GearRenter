@@ -1,0 +1,4 @@
+* 868315d updated version
+* ffe150f added config options to lock/unlock/reset progress bar
+* ccb5d59 moved progress bar to top middle, where it's better seen
+* b1e9267 added itemcount/itemtotal in progress bar
