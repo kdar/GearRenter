@@ -51,7 +51,7 @@ local options = {
         }
       }
     },
-    newline1 = {type = "description", order = 4, name = "\n"},
+    newline3 = {type = "description", order = 4, name = "\n"},
     alertgroup2 = {
       name = 'Expire alert 2',
       type = 'group',
@@ -70,7 +70,7 @@ local options = {
             GearRenter.alerts[2].shown = false
           end,          
         },
-        newline2 = {type = "description", order = 2, name = "\n"},
+        newline4 = {type = "description", order = 2, name = "\n"},
         alertMinutes = {
           type = 'range',
           order = 3,
@@ -88,6 +88,39 @@ local options = {
         }
       }
     },
+    newline5 = {type = "description", order = 5, name = "\n"},
+    progressgroup1 = {
+      name = 'Progress bar',
+      type = 'group',
+      inline = true,
+      order = 6,
+      args = {
+        unlock = {
+          name = 'Unlock',
+          type = 'execute',
+          order = 1,
+          func = function() 
+            GearRenterProgressFrame:Show()
+            GearRenterProgressFrame:SetMovable(true)
+          end
+        },
+        lock = {
+          name = 'Lock',
+          type = 'execute',
+          order = 2,
+          func = function() 
+            GearRenterProgressFrame:Hide() 
+            GearRenterProgressFrame:SetMovable(false)
+          end
+        },
+        resetPosition = {
+          name = 'Reset position',
+          type = 'execute',
+          order = 3,
+          func = function() GearRenter.ResetProgressPos() end
+        }
+      }
+    }
   },
 }
 
@@ -230,6 +263,11 @@ function GearRenter:OnDisable()
   end
 
   self.db.profile.enabled = false
+end
+
+function GearRenter:ResetProgressPos()
+  GearRenterProgressFrame:ClearAllPoints()
+  GearRenterProgressFrame:SetPoint("TOP", "UIParent", "TOP", 0, -160)
 end
 
 function GearRenter:EnableAlert(which, enabled)
