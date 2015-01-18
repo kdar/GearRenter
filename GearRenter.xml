@@ -92,15 +92,15 @@
 			<OnUpdate/>
 		</Scripts>
 	</Frame>
-	
+
 	<Frame clampedToScreen="true" enableMouse="true" frameStrata="HIGH" hidden="true" movable="true" name="GearRenterProgressFrame" parent="UIParent" toplevel="true">
 		<Size>
 			<AbsDimension x="217" y="20"/>
 		</Size>
 		<Anchors>
-			<Anchor point="BOTTOM">
+			<Anchor point="TOP">
 				<Offset>
-					<AbsDimension x="0" y="160"/>
+					<AbsDimension x="0" y="-160"/>
 				</Offset>
 			</Anchor>
 		</Anchors>
