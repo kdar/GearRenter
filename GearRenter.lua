@@ -483,5 +483,5 @@ function GearRenter:Rebuy()
       self:CancelTimer(self.repeatTimer)
       GearRenterProgressFrame:Hide();
     end
-  end, 0.3)
+  end, 0.2)
 end
