@@ -389,9 +389,6 @@ function GearRenter:Rebuy()
     money, itemCount, refundSec, currecycount, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
     _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)    
     if currencies[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
-      currentPlayerCurrency = select(2, GetCurrencyInfo(currencies[currencyName]))
-      _, equippedIlvl = GetAverageItemLevel()
-
       itemRentTotal = itemRentTotal + 1
 
       local itemID = GetInventoryItemID("player", slotID)
@@ -408,50 +405,34 @@ function GearRenter:Rebuy()
             ContainerRefundItemPurchase(-2, slotID)
             return true
           end, slotID})
-          table.insert(self.queue, {function(currentPlayerCurrency, currencyName)
-            amount = select(2, GetCurrencyInfo(currencies[currencyName]))
-            if currentPlayerCurrency < amount then
-              return true
-            end
-
-            return false
-          end, currentPlayerCurrency, currencyName})
+          table.insert(self.queue, {function(slotID)
+            return GetInventoryItemID("player", slotID) == nil
+          end, slotID})
           table.insert(self.queue, {function(index)
             BuyMerchantItem(index, 1)
             return true
           end, x})
-          table.insert(self.queue, {function(currentPlayerCurrency, currencyName)
-            amount = select(2, GetCurrencyInfo(currencies[currencyName]))
-            if amount == currentPlayerCurrency then
+          table.insert(self.queue, {function(itemID)
+            found = false
+            for bag=0, NUM_BAG_SLOTS do
+              for bagSlot=1, GetContainerNumSlots(bag) do
+                if GetContainerItemID(bag, bagSlot) == tonumber(itemID) then
+                  found = true
+                end
+              end
+            end
+
+            return found
+          end, itemID})
+          table.insert(self.queue, {function(link, slotID)
+            if GetInventoryItemID("player", slotID) ~= nil then
+              itemRentCount = itemRentCount + 1
               return true
             end
 
-            return false
-          end, currentPlayerCurrency, currencyName})
-          --table.insert(self.queue, {EquipItemByName, link})
-          -- table.insert(self.queue, {function(link, slotID)
-          --   EquipItemByName(link, slotID)
-          --   -- PickupItem(link)
-          --   -- EquipCursorItem(slotID)
-          --   -- AutoEquipCursorItem()
-          --   return true
-          -- end, link, slotID})
-          table.insert(self.queue, {function(link, slotID, equippedIlvl)
-            --truth = GetInventoryItemID("player", slotID) ~= nil
-            -- Testing for the average item level seems to be more consistent
-            -- than actually looking if there is something in the slot. All
-            -- the APIs that get slot info seem to indicate that an item
-            -- is in the slot when there isn't any.
-            _, ilvl = GetAverageItemLevel()
-            truth = (ilvl == equippedIlvl) and GetInventoryItemID("player", slotID) ~= nil
-            if truth then
-              itemRentCount = itemRentCount + 1
-              return truth
-            end
-
             EquipItemByName(link, slotID)
-            return truth
-          end, link, slotID, equippedIlvl})
+            return false
+          end, link, slotID})
         end
       end
     end
@@ -464,6 +445,7 @@ function GearRenter:Rebuy()
       self.alerts[i].shown = false
       self.alerts[i].enteringWorld = 0
     end
+
     return true
   end})
 
@@ -483,5 +465,5 @@ function GearRenter:Rebuy()
       self:CancelTimer(self.repeatTimer)
       GearRenterProgressFrame:Hide();
     end
-  end, 0.2)
+  end, 0.1)
 end
