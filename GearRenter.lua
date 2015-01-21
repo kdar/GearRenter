@@ -95,30 +95,50 @@ local options = {
       inline = true,
       order = 6,
       args = {
-        unlock = {
-          name = 'Unlock',
-          type = 'execute',
-          order = 1,
-          func = function() 
-            GearRenterProgressFrame:Show()
-            GearRenterProgressFrame:SetMovable(true)
-            GearRenterProgressFrame:EnableMouse(true)
-          end
-        },
         lock = {
-          name = 'Lock',
-          type = 'execute',
-          order = 2,
-          func = function() 
-            GearRenterProgressFrame:Hide() 
-            GearRenterProgressFrame:SetMovable(false)
-            GearRenterProgressFrame:EnableMouse(false)
-          end
+          type = 'toggle',
+          order = 1,
+          name = 'Lock bar',
+          desc = 'Lock or unlock the progress bar.',
+          get = function(info) return GearRenter.db.profile.progress.locked end,
+          set = function(info, val) 
+            if (val) then 
+              GearRenter.db.profile.progress.locked = true
+              GearRenterProgressFrame:Hide() 
+              GearRenterProgressFrame:SetMovable(false)
+              GearRenterProgressFrame:EnableMouse(false)
+            else 
+              GearRenter.db.profile.progress.locked = false
+              GearRenterProgressFrame:Show()
+              GearRenterProgressFrame:SetMovable(true)
+              GearRenterProgressFrame:EnableMouse(true)
+            end 
+          end,  
         },
+        -- unlock = {
+        --   name = 'Unlock',
+        --   type = 'execute',
+        --   order = 1,
+        --   func = function() 
+        --     GearRenterProgressFrame:Show()
+        --     GearRenterProgressFrame:SetMovable(true)
+        --     GearRenterProgressFrame:EnableMouse(true)
+        --   end
+        -- },
+        -- lock = {
+        --   name = 'Lock',
+        --   type = 'execute',
+        --   order = 2,
+        --   func = function() 
+        --     GearRenterProgressFrame:Hide() 
+        --     GearRenterProgressFrame:SetMovable(false)
+        --     GearRenterProgressFrame:EnableMouse(false)
+        --   end
+        -- },
         resetPosition = {
           name = 'Reset position',
           type = 'execute',
-          order = 3,
+          order = 2,
           func = function() GearRenter.ResetProgressPos() end
         }
       }
@@ -129,6 +149,9 @@ local options = {
 local defaults = {
   profile = {
     enabled = true,
+    progress = {
+      locked = true
+    },
     alerts = {
       {
         enabled = true,
