@@ -102,6 +102,7 @@ local options = {
           func = function() 
             GearRenterProgressFrame:Show()
             GearRenterProgressFrame:SetMovable(true)
+            GearRenterProgressFrame:EnableMouse(true)
           end
         },
         lock = {
@@ -111,6 +112,7 @@ local options = {
           func = function() 
             GearRenterProgressFrame:Hide() 
             GearRenterProgressFrame:SetMovable(false)
+            GearRenterProgressFrame:EnableMouse(false)
           end
         },
         resetPosition = {
