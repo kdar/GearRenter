@@ -10,5 +10,6 @@
 ## X-Curse-Repository-ID: wow/GearRenter/mainline
 
 embeds.xml
+util.lua
 GearRenter.lua
 GearRenter.xml

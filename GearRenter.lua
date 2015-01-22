@@ -176,11 +176,23 @@ local defaults = {
   profile = {
     enabled = true,
     progress = {
-      locked = true
+      locked = true,
+      position = {
+        from = "TOP",
+        to = "TOP",
+        x = 0,
+        y = -160
+      }
     },
     timer = {
       enabled = false,
-      locked = true
+      locked = true,
+      position = {
+        from = "TOP",
+        to = "TOP",
+        x = 0,
+        y = -100
+      }
     },
     alerts = {
       {
@@ -233,11 +245,10 @@ function GearRenter:OnInitialize()
   GearRenterTimerFrameBar:SetStatusBarColor(0, 0.7, 1.0, 1.0)
   self:SetBarFrameSize(GearRenterTimerFrame, 150, 20)
 
-  GearRenterProgressFrame:SetMovable(true)
   GearRenterProgressFrame:SetUserPlaced(true)
-
-  GearRenterTimerFrame:SetMovable(true)
+  GearRenterUtil.applyDragFunctionality(GearRenterProgressFrame, GearRenter.db.profile.progress.position, defaults.profile.progress.position)
   GearRenterTimerFrame:SetUserPlaced(true)
+  GearRenterUtil.applyDragFunctionality(GearRenterTimerFrame, GearRenter.db.profile.timer.position, defaults.profile.timer.position)
 
   -- self.machine = self.statemachine.create({
   --   initial = 'none',
@@ -339,20 +350,22 @@ end
 
 function GearRenter:ResetProgressPos()
   GearRenterProgressFrame:ClearAllPoints()
-  GearRenterProgressFrame:SetPoint("TOP", "UIParent", "TOP", 0, -160)
+  --GearRenterProgressFrame:SetPoint("TOP", "UIParent", "TOP", 0, -160)
+  GearRenterProgressFrame:reset()
 end
 
 function GearRenter:ResetTimerPos()
   GearRenterTimerFrame:ClearAllPoints()
-  GearRenterTimerFrame:SetPoint("TOP", "UIParent", "TOP", 0, -100)
+  --GearRenterTimerFrame:SetPoint("TOP", "UIParent", "TOP", 0, -100)
+  GearRenterTimerFrame:reset()
 end
 
 function GearRenter:SetBarFrameSize(frame, width, height)
   name = frame:GetName()
   frame:SetSize(width, height)
-  _G[name.."Bar"]:SetSize(width-20, height)
-  _G[name.."BarText"]:SetSize(width-30, height+8)
-  _G[name.."BarBorder"]:SetSize(width-15, height+4)
+  _G[name.."Bar"]:SetSize(width, height)
+  _G[name.."BarText"]:SetSize(width-10, height+8)
+  _G[name.."BarBorder"]:SetSize(width+8, height+4)
 end
 
 function GearRenter:EnableAlert(which, enabled)
@@ -372,12 +385,14 @@ end
 
 function GearRenter:LockProgress()
   GearRenter.db.profile.progress.locked = true
-  GearRenterProgressFrame:EnableMouse(false)
+  --GearRenterProgressFrame:EnableMouse(false)
+  GearRenterProgressFrame:lock()
 end
 
 function GearRenter:UnlockProgress()
   GearRenter.db.profile.progress.locked = false
-  GearRenterProgressFrame:EnableMouse(true)  
+  --GearRenterProgressFrame:EnableMouse(true)  
+  GearRenterProgressFrame:unlock()
 end
 
 function GearRenter:EnableTimer()
@@ -418,12 +433,76 @@ end
 
 function GearRenter:LockTimer()
   GearRenter.db.profile.timer.locked = true
-  GearRenterTimerFrame:EnableMouse(false)
+  --GearRenterTimerFrame:EnableMouse(false)
+  GearRenterTimerFrame:lock()
 end
 
 function GearRenter:UnlockTimer()
   GearRenter.db.profile.timer.locked = false
-  GearRenterTimerFrame:EnableMouse(true)
+  --GearRenterTimerFrame:EnableMouse(true)  
+  GearRenterTimerFrame:unlock()
+
+  -- GearRenterTimerFrame:SetScript("OnMouseDown", GearRenterTimerFrame.StartMoving)
+  -- GearRenterTimerFrame:SetScript("OnMouseUp",function(self, button)
+  --   self:StopMovingOrSizing()
+
+  --   local opts = addon.db.profile.frameopts
+  --   local from, _, to, x, y = self:GetPoint()
+
+  --   opts.anchorFrom = from
+  --   opts.anchorTo = to
+
+  --   if self.is_expanded then
+  --     if opts.anchorFrom == "TOPLEFT" or opts.anchorFrom == "LEFT" or opts.anchorFrom == "BOTTOMLEFT" then
+  --       opts.offsetx = x
+  --     elseif opts.anchorFrom == "TOP" or opts.anchorFrom == "CENTER" or opts.anchorFrom == "BOTTOM" then
+  --       opts.offsetx = x - 151/2
+  --     elseif opts.anchorFrom == "TOPRIGHT" or opts.anchorFrom == "RIGHT" or opts.anchorFrom == "BOTTOMRIGHT" then
+  --       opts.offsetx = x - 151
+  --     end
+  --   else
+  --     opts.offsetx = x
+  --   end
+  --   opts.offsety = y
+  -- end)
+
+  -- do
+  --   -------------------------------------------------------------------------------
+  --   -- Restore the panel's position on the screen.
+  --   -------------------------------------------------------------------------------
+  --   local function Reset_Position(self)
+  --     local opts = addon.db.profile.frameopts
+  --     local FixedOffsetX = opts.offsetx
+
+  --     self:ClearAllPoints()
+
+  --     if opts.anchorTo == "" then -- no values yet, clamp to whatever frame is appropriate
+  --       if _G.ATSWFrame then
+  --         self:SetPoint("CENTER", _G.ATSWFrame, "CENTER", 490, 0)
+  --       elseif _G.CauldronFrame then
+  --         self:SetPoint("CENTER", _G.CauldronFrame, "CENTER", 490, 0)
+  --       elseif _G.Skillet then
+  --         self:SetPoint("CENTER", _G.SkilletFrame, "CENTER", 468, 0)
+  --       else
+  --         self:SetPoint("TOPLEFT", _G.TradeSkillFrame, "TOPRIGHT", 10, 0)
+  --       end
+  --     else
+  --       if self.is_expanded then
+  --         if opts.anchorFrom == "TOPLEFT" or opts.anchorFrom == "LEFT" or opts.anchorFrom == "BOTTOMLEFT" then
+  --           FixedOffsetX = opts.offsetx
+  --         elseif opts.anchorFrom == "TOP" or opts.anchorFrom == "CENTER" or opts.anchorFrom == "BOTTOM" then
+  --           FixedOffsetX = opts.offsetx + 151/2
+  --         elseif opts.anchorFrom == "TOPRIGHT" or opts.anchorFrom == "RIGHT" or opts.anchorFrom == "BOTTOMRIGHT" then
+  --           FixedOffsetX = opts.offsetx + 151
+  --         end
+  --       end
+  --       self:SetPoint(opts.anchorFrom, UIParent, opts.anchorTo, FixedOffsetX, opts.offsety)
+  --     end
+  --     self:SetScale(addon.db.profile.frameopts.uiscale)
+  --   end
+
+  --   MainPanel:SetScript("OnShow", Reset_Position)
+  -- end -- do-block
 end
 
 function GearRenter:PLAYER_ENTERING_WORLD()

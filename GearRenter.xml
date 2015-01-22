@@ -93,9 +93,9 @@
 		</Scripts>
 	</Frame>
 
-	<Frame clampedToScreen="true" frameStrata="HIGH" hidden="true" name="GearRenterBarFrameTemplate" virtual="true" parent="UIParent" toplevel="true">
+	<Frame clampedToScreen="true" movable="true" frameStrata="HIGH" hidden="true" name="GearRenterBarFrameTemplate" virtual="true" parent="UIParent" toplevel="true">
 		<Size>
-			<AbsDimension x="217" y="20"/>
+			<AbsDimension x="195" y="20"/>
 		</Size>
 		<Anchors>
 			<Anchor point="TOP">
