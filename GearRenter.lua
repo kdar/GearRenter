@@ -385,7 +385,7 @@ function GearRenter:EnableTimer()
   GearRenterTimerFrame:Show()
 
   self.timerTimer = self:ScheduleRepeatingTimer(self.TimerTick, 30)
-  self:TimerTick()
+  self:ScheduleTimer(self.TimerTick, 3)
 end
 
 function GearRenter:DisableTimer()
@@ -396,6 +396,10 @@ function GearRenter:DisableTimer()
 end
 
 function GearRenter:TimerTick()
+  if GearRenter.db.profile.timer.enabled == false then
+    return
+  end
+
   lowestSecs = nil
   for slotID=1,18 do
     _, _, refundSec, _, _ = GetContainerItemPurchaseInfo(-2, slotID, true)
