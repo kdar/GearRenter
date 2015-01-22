@@ -1,8 +1,7 @@
 GearRenter
 ==========
 
-WoW addon that assists in renting PVP gear. This is useful because an item can drop in RBGs, Ashran, or the Coliseum that you already have. 
-If you have it rented out, you can just sell it back.
+WoW addon that assists in renting PVP gear. This is useful because an item can drop in RBGs, Ashran, or the Coliseum that you already have. If you have it rented out, you can just sell it back.
 
 ### How to use
 
@@ -14,3 +13,6 @@ If you have it rented out, you can just sell it back.
 
 This will not sell gear that has enchants on it. 
 
+### Who made it?
+
+I go by a lot of WoW names, but you might know me as creamcup, mixup, dotup.

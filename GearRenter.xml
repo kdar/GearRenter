@@ -93,15 +93,13 @@
 		</Scripts>
 	</Frame>
 
-	<Frame clampedToScreen="true" enableMouse="false" frameStrata="HIGH" hidden="true" movable="false" name="GearRenterProgressFrame" parent="UIParent" toplevel="true">
+	<Frame clampedToScreen="true" frameStrata="HIGH" hidden="true" name="GearRenterBarFrameTemplate" virtual="true" parent="UIParent" toplevel="true">
 		<Size>
 			<AbsDimension x="217" y="20"/>
 		</Size>
 		<Anchors>
 			<Anchor point="TOP">
-				<Offset>
-					<AbsDimension x="0" y="-160"/>
-				</Offset>
+				<Offset x="0" y="-160" />
 			</Anchor>
 		</Anchors>
 		<TitleRegion setAllPoints="true"/>
@@ -113,7 +111,7 @@
 			</Layer>
 		</Layers>
 		<Frames>
-			<StatusBar defaultValue="0" drawLayer="BORDER" maxValue="1" minValue="0" name="GearRenterProgressBar" virtual="true">
+			<StatusBar defaultValue="0" drawLayer="BORDER" maxValue="1" minValue="0" name="$parentBar" virtual="true">
 				<Size>
 					<AbsDimension x="195" y="20"/>
 				</Size>
@@ -146,7 +144,7 @@
 					</Layer>
 				</Layers>
 				<Frames>
-					<Frame>
+					<Frame name="$parentBorder">
 						<Size>
 							<AbsDimension x="203" y="24"/>
 						</Size>
@@ -170,5 +168,16 @@
 				<BarColor b="0.0" g="0.7" r="1.0"/>
 			</StatusBar>
 		</Frames>
+	</Frame>
+
+	<Frame name="GearRenterProgressFrame" parent="UIParent" inherits="GearRenterBarFrameTemplate">
+	</Frame>
+
+	<Frame name="GearRenterTimerFrame" parent="UIParent" inherits="GearRenterBarFrameTemplate">
+		<Anchors>
+			<Anchor point="TOP">
+				<Offset x="0" y="-100" />
+			</Anchor>
+		</Anchors>
 	</Frame>
 </Ui>

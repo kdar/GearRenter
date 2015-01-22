@@ -15,16 +15,21 @@ local options = {
       set = function(info, val) if (val) then GearRenter:Enable() else GearRenter:Disable() end end,      
     },
     newline1 = {type = "description", order = 2, name = "\n"},
+    alertHeader = {
+      order = 3, 
+      type = "header",
+      name = "Alerts",
+    },
     alertgroup1 = {
       name = 'Expire alert 1',
       type = 'group',
       inline = true,
-      order = 3,
+      order = 4,
       args = {
         alertEnabled = {
           type = 'toggle',
           order = 1,
-          name = 'Enable',
+          name = 'Enable alert 1',
           width = 'double',
           desc = 'This will pop up an alert window when one of your pieces of gear is about to expire.',
           get = function(info) return GearRenter.db.profile.alerts[1].enabled end,
@@ -51,17 +56,17 @@ local options = {
         }
       }
     },
-    newline3 = {type = "description", order = 4, name = "\n"},
+    newline3 = {type = "description", order = 5, name = "\n"},
     alertgroup2 = {
       name = 'Expire alert 2',
       type = 'group',
       inline = true,
-      order = 5,
+      order = 6,
       args = {
         alertEnabled = {
           type = 'toggle',
           order = 1,
-          name = 'Enable',
+          name = 'Enable alert 2',
           width = 'double',
           desc = 'This will pop up an alert window when one of your pieces of gear is about to expire.',
           get = function(info) return GearRenter.db.profile.alerts[2].enabled end,
@@ -88,60 +93,81 @@ local options = {
         }
       }
     },
-    newline5 = {type = "description", order = 5, name = "\n"},
+    newline5 = {type = "description", order = 7, name = "\n"},
+    progressHeader = {
+      order = 8, 
+      type = "header",
+      name = "Progress bar",
+    },
     progressgroup1 = {
-      name = 'Progress bar',
+      name = '',
       type = 'group',
       inline = true,
-      order = 6,
+      order = 9,
       args = {
-        lock = {
+        progressLock = {
           type = 'toggle',
           order = 1,
-          name = 'Lock bar',
+          name = 'Lock progress',
           desc = 'Lock or unlock the progress bar.',
           get = function(info) return GearRenter.db.profile.progress.locked end,
           set = function(info, val) 
-            if (val) then 
-              GearRenter.db.profile.progress.locked = true
-              GearRenterProgressFrame:Hide() 
-              GearRenterProgressFrame:SetMovable(false)
-              GearRenterProgressFrame:EnableMouse(false)
-            else 
-              GearRenter.db.profile.progress.locked = false
+            if val then
+              GearRenterProgressFrame:Hide()
+              GearRenter:LockProgress()
+            else
               GearRenterProgressFrame:Show()
-              GearRenterProgressFrame:SetMovable(true)
-              GearRenterProgressFrame:EnableMouse(true)
-            end 
+              GearRenter:UnlockProgress()
+            end
           end,  
         },
-        -- unlock = {
-        --   name = 'Unlock',
-        --   type = 'execute',
-        --   order = 1,
-        --   func = function() 
-        --     GearRenterProgressFrame:Show()
-        --     GearRenterProgressFrame:SetMovable(true)
-        --     GearRenterProgressFrame:EnableMouse(true)
-        --   end
-        -- },
-        -- lock = {
-        --   name = 'Lock',
-        --   type = 'execute',
-        --   order = 2,
-        --   func = function() 
-        --     GearRenterProgressFrame:Hide() 
-        --     GearRenterProgressFrame:SetMovable(false)
-        --     GearRenterProgressFrame:EnableMouse(false)
-        --   end
-        -- },
-        resetPosition = {
+        progressResetPosition = {
           name = 'Reset position',
           type = 'execute',
           order = 2,
           func = function() GearRenter.ResetProgressPos() end
         }
       }
+    },
+    newline6 = {type = "description", order = 10, name = "\n"},
+    timerHeader = {
+      order = 11, 
+      type = "header",
+      name = "Timer",
+    },
+    timerEnable = {
+      type = 'toggle',
+      order = 12,
+      name = 'Enable timer',
+      desc = 'Enables or disables the timer.',
+      get = function(info) return GearRenter.db.profile.timer.enabled end,
+      set = function(info, val) 
+        if (val) then 
+          GearRenter:EnableTimer()
+        else 
+          GearRenter:DisableTimer()
+        end 
+      end,  
+    },
+    timerLock = {
+      type = 'toggle',
+      order = 13,
+      name = 'Lock timer',
+      desc = 'Lock or unlock the timer bar.',
+      get = function(info) return GearRenter.db.profile.timer.locked end,
+      set = function(info, val) 
+        if val then
+          GearRenter:LockTimer()
+        else
+          GearRenter:UnlockTimer()
+        end
+      end,  
+    },
+    timerResetPosition = {
+      name = 'Reset position',
+      type = 'execute',
+      order = 14,
+      func = function() GearRenter.ResetTimerPos() end
     }
   },
 }
@@ -150,6 +176,10 @@ local defaults = {
   profile = {
     enabled = true,
     progress = {
+      locked = true
+    },
+    timer = {
+      enabled = false,
       locked = true
     },
     alerts = {
@@ -199,6 +229,16 @@ function GearRenter:OnInitialize()
     preferredIndex = 3,  -- avoid some UI taint, see http://www.wowace.com/announcements/how-to-avoid-some-ui-taint/
   }
 
+  GearRenterTimerFrameBarText:SetText("Timer")
+  GearRenterTimerFrameBar:SetStatusBarColor(0, 0.7, 1.0, 1.0)
+  self:SetBarFrameSize(GearRenterTimerFrame, 150, 20)
+
+  GearRenterProgressFrame:SetMovable(true)
+  GearRenterProgressFrame:SetUserPlaced(true)
+
+  GearRenterTimerFrame:SetMovable(true)
+  GearRenterTimerFrame:SetUserPlaced(true)
+
   -- self.machine = self.statemachine.create({
   --   initial = 'none',
   --   events = {
@@ -239,14 +279,6 @@ function GearRenter:NextQueue()
     func = item[1]
     args = slice(item, 2)
 
-    -- if func == ContainerRefundItemPurchase then
-    --  GearRenter:Print("ContainerRefundItemPurchase")
-    -- elseif func == BuyMerchantItem then
-    --  GearRenter:Print("BuyMerchantItem")
-    -- elseif func == EquipItemByName then
-    --  GearRenter:Print("EquipItemByName")
-    -- end
-
     ret = func(unpack(args))
     if ret then
       table.remove(self.queue, 1)
@@ -260,16 +292,31 @@ function GearRenter:NextQueue()
 end
 
 function GearRenter:OnEnable()
-  --self:RegisterEvent("UNIT_INVENTORY_CHANGED")
   self:RegisterEvent("PLAYER_ENTERING_WORLD")
   self:RegisterChatCommand("rebuy", "Rebuy")
-  -- self:RegisterEvent("BAG_UPDATE_DELAYED")
 
-  --GearRenterFrame:SetParent(MerchantFrame)
   GearRenterFrame:Show()
 
   for i=1,#self.db.profile.alerts do
     self:EnableAlert(i, self.db.profile.alerts[i].enabled)
+  end
+
+  if self.db.profile.timer.enabled then
+    self:EnableTimer()
+  else
+    self:DisableTimer()
+  end
+
+  if GearRenter.db.profile.progress.locked then
+    self:LockProgress()
+  else
+    self:UnlockProgress()
+  end
+
+  if GearRenter.db.profile.timer.locked then
+    self:LockTimer()
+  else
+    self:UnlockTimer()
   end
 
   self.db.profile.enabled = true
@@ -278,14 +325,14 @@ end
 function GearRenter:OnDisable()
   self:UnregisterChatCommand("rebuy")
   self:UnregisterEvent("PLAYER_ENTERING_WORLD")
-  --self:UnregisterEvent("UNIT_INVENTORY_CHANGED")
 
-  --GearRenterFrame:SetParent(nil)
   GearRenterFrame:Hide()
 
   for i=1,#self.db.profile.alerts do
     self:EnableAlert(i, false)
   end
+
+  self:DisableTimer()
 
   self.db.profile.enabled = false
 end
@@ -293,6 +340,19 @@ end
 function GearRenter:ResetProgressPos()
   GearRenterProgressFrame:ClearAllPoints()
   GearRenterProgressFrame:SetPoint("TOP", "UIParent", "TOP", 0, -160)
+end
+
+function GearRenter:ResetTimerPos()
+  GearRenterTimerFrame:ClearAllPoints()
+  GearRenterTimerFrame:SetPoint("TOP", "UIParent", "TOP", 0, -100)
+end
+
+function GearRenter:SetBarFrameSize(frame, width, height)
+  name = frame:GetName()
+  frame:SetSize(width, height)
+  _G[name.."Bar"]:SetSize(width-20, height)
+  _G[name.."BarText"]:SetSize(width-30, height+8)
+  _G[name.."BarBorder"]:SetSize(width-15, height+4)
 end
 
 function GearRenter:EnableAlert(which, enabled)
@@ -310,23 +370,57 @@ function GearRenter:EnableAlert(which, enabled)
   end
 end
 
--- function GearRenter:BAG_UPDATE_DELAYED()
---   self:Print("CALLLLEEEDDDD")
--- end
+function GearRenter:LockProgress()
+  GearRenter.db.profile.progress.locked = true
+  GearRenterProgressFrame:EnableMouse(false)
+end
 
--- function GearRenter:UNIT_INVENTORY_CHANGED(event, unitID)
---   self:ScheduleTimer(function()
---     if self.machine:is('started') then
---       self.machine:sell()  
---     elseif self.machine:is('sold') then
---       self.machine:buy()
---     elseif self.machine:is('bought') then
---       self.machine:equip()
---     elseif self.machine:is('equipped') then
---       self.machine:start()
---     end
---   end, 0.5)
--- end
+function GearRenter:UnlockProgress()
+  GearRenter.db.profile.progress.locked = false
+  GearRenterProgressFrame:EnableMouse(true)  
+end
+
+function GearRenter:EnableTimer()
+  self.db.profile.timer.enabled = true
+  GearRenterTimerFrame:Show()
+
+  self.timerTimer = self:ScheduleRepeatingTimer(self.TimerTick, 30)
+  self:TimerTick()
+end
+
+function GearRenter:DisableTimer()
+  self.db.profile.timer.enabled = false
+  GearRenterTimerFrame:Hide()
+
+  self:CancelTimer(self.timerTimer)
+end
+
+function GearRenter:TimerTick()
+  lowestSecs = nil
+  for slotID=1,18 do
+    _, _, refundSec, _, _ = GetContainerItemPurchaseInfo(-2, slotID, true)
+    if refundSec ~= nil and (lowestSecs == nil or refundSec < lowestSecs) then
+      lowestSecs = refundSec
+    end
+  end
+
+  if lowestSecs ~= nil then
+    GearRenterTimerFrame:Show();
+    GearRenterTimerFrameBar:SetMinMaxValues(0, 7200)
+    GearRenterTimerFrameBar:SetValue(lowestSecs)      
+    GearRenterTimerFrameBarText:SetText(string.format("Rent: %.2d:%.2d", lowestSecs/(60*60), lowestSecs/60%60))
+  end
+end
+
+function GearRenter:LockTimer()
+  GearRenter.db.profile.timer.locked = true
+  GearRenterTimerFrame:EnableMouse(false)
+end
+
+function GearRenter:UnlockTimer()
+  GearRenter.db.profile.timer.locked = false
+  GearRenterTimerFrame:EnableMouse(true)
+end
 
 function GearRenter:PLAYER_ENTERING_WORLD()
   local instanceType = select(2, IsInInstance())
@@ -405,7 +499,7 @@ function GearRenter:Rebuy()
   end
 
   -- Cancel the timer if it is still going on from before.
-  self:CancelTimer(self.repeatTimer)
+  self:CancelTimer(self.rentTimer)
 
   self.queue = {}
   itemRentCount = 0
@@ -471,23 +565,25 @@ function GearRenter:Rebuy()
       self.alerts[i].enteringWorld = 0
     end
 
+    self:TimerTick()
+
     return true
   end})
 
   GearRenterProgressFrame:Show();
-  GearRenterProgressBar:SetMinMaxValues(0, 1)
-  GearRenterProgressBar:SetValue(0)
+  GearRenterProgressFrameBar:SetMinMaxValues(0, 1)
+  GearRenterProgressFrameBar:SetValue(0)
   local queueLen = #self.queue;
 
-  self.repeatTimer = self:ScheduleRepeatingTimer(function()
+  self.rentTimer = self:ScheduleRepeatingTimer(function()
     self:NextQueue()
 
     local progress = 1 - (#self.queue/queueLen)
-    GearRenterProgressBar:SetValue(progress)
-    GearRenterProgressBarText:SetText("Renting "..itemRentCount.."/"..itemRentTotal.." - "..floor(progress * 100).."%")
+    GearRenterProgressFrameBar:SetValue(progress)
+    GearRenterProgressFrameBarText:SetText("Renting "..itemRentCount.."/"..itemRentTotal.." - "..floor(progress * 100).."%")
 
     if #self.queue <= 0 then
-      self:CancelTimer(self.repeatTimer)
+      self:CancelTimer(self.rentTimer)
       GearRenterProgressFrame:Hide();
     end
   end, 0.1)
