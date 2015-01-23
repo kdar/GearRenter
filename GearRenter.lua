@@ -219,6 +219,8 @@ function GearRenter:OnInitialize()
   LibStub("AceConfig-3.0"):RegisterOptionsTable("GearRenter.profiles", profiles)
   LibStub("AceConfigDialog-3.0"):AddToBlizOptions("GearRenter.profiles", "Profiles", "GearRenter")
 
+  self.fetchTooltip = CreateFrame("GAMETOOLTIP", "fetchTooltip")
+
   self.queue = {}
   self.alerts = {
     {
@@ -417,6 +419,10 @@ function GearRenter:TimerTick()
 
   lowestSecs = nil
   for slotID=1,18 do
+    -- This forces the purchase info to actually load. If you don't do this,
+    -- the purchase info will sometimes come back empty. I'm not sure if
+    -- there is a cleaner API to do this.
+    GearRenter.fetchTooltip:SetInventoryItem("player", slotID)
     _, _, refundSec, _, _ = GetContainerItemPurchaseInfo(-2, slotID, true)
     if refundSec ~= nil and (lowestSecs == nil or refundSec < lowestSecs) then
       lowestSecs = refundSec
@@ -433,76 +439,12 @@ end
 
 function GearRenter:LockTimer()
   GearRenter.db.profile.timer.locked = true
-  --GearRenterTimerFrame:EnableMouse(false)
   GearRenterTimerFrame:lock()
 end
 
 function GearRenter:UnlockTimer()
   GearRenter.db.profile.timer.locked = false
-  --GearRenterTimerFrame:EnableMouse(true)  
   GearRenterTimerFrame:unlock()
-
-  -- GearRenterTimerFrame:SetScript("OnMouseDown", GearRenterTimerFrame.StartMoving)
-  -- GearRenterTimerFrame:SetScript("OnMouseUp",function(self, button)
-  --   self:StopMovingOrSizing()
-
-  --   local opts = addon.db.profile.frameopts
-  --   local from, _, to, x, y = self:GetPoint()
-
-  --   opts.anchorFrom = from
-  --   opts.anchorTo = to
-
-  --   if self.is_expanded then
-  --     if opts.anchorFrom == "TOPLEFT" or opts.anchorFrom == "LEFT" or opts.anchorFrom == "BOTTOMLEFT" then
-  --       opts.offsetx = x
-  --     elseif opts.anchorFrom == "TOP" or opts.anchorFrom == "CENTER" or opts.anchorFrom == "BOTTOM" then
-  --       opts.offsetx = x - 151/2
-  --     elseif opts.anchorFrom == "TOPRIGHT" or opts.anchorFrom == "RIGHT" or opts.anchorFrom == "BOTTOMRIGHT" then
-  --       opts.offsetx = x - 151
-  --     end
-  --   else
-  --     opts.offsetx = x
-  --   end
-  --   opts.offsety = y
-  -- end)
-
-  -- do
-  --   -------------------------------------------------------------------------------
-  --   -- Restore the panel's position on the screen.
-  --   -------------------------------------------------------------------------------
-  --   local function Reset_Position(self)
-  --     local opts = addon.db.profile.frameopts
-  --     local FixedOffsetX = opts.offsetx
-
-  --     self:ClearAllPoints()
-
-  --     if opts.anchorTo == "" then -- no values yet, clamp to whatever frame is appropriate
-  --       if _G.ATSWFrame then
-  --         self:SetPoint("CENTER", _G.ATSWFrame, "CENTER", 490, 0)
-  --       elseif _G.CauldronFrame then
-  --         self:SetPoint("CENTER", _G.CauldronFrame, "CENTER", 490, 0)
-  --       elseif _G.Skillet then
-  --         self:SetPoint("CENTER", _G.SkilletFrame, "CENTER", 468, 0)
-  --       else
-  --         self:SetPoint("TOPLEFT", _G.TradeSkillFrame, "TOPRIGHT", 10, 0)
-  --       end
-  --     else
-  --       if self.is_expanded then
-  --         if opts.anchorFrom == "TOPLEFT" or opts.anchorFrom == "LEFT" or opts.anchorFrom == "BOTTOMLEFT" then
-  --           FixedOffsetX = opts.offsetx
-  --         elseif opts.anchorFrom == "TOP" or opts.anchorFrom == "CENTER" or opts.anchorFrom == "BOTTOM" then
-  --           FixedOffsetX = opts.offsetx + 151/2
-  --         elseif opts.anchorFrom == "TOPRIGHT" or opts.anchorFrom == "RIGHT" or opts.anchorFrom == "BOTTOMRIGHT" then
-  --           FixedOffsetX = opts.offsetx + 151
-  --         end
-  --       end
-  --       self:SetPoint(opts.anchorFrom, UIParent, opts.anchorTo, FixedOffsetX, opts.offsety)
-  --     end
-  --     self:SetScale(addon.db.profile.frameopts.uiscale)
-  --   end
-
-  --   MainPanel:SetScript("OnShow", Reset_Position)
-  -- end -- do-block
 end
 
 function GearRenter:PLAYER_ENTERING_WORLD()
