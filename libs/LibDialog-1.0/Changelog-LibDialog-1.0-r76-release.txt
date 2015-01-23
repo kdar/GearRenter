@@ -1,0 +1,8 @@
+2014-10-27  James D. Callahan III  <jcallahan@curse.com>
+
+[fac8254c08cb] [r76-release]
+* .pkgmeta, LibDialog-1.0.lua:
+
+Fixed LibStub entry in .pkgmeta
+
+

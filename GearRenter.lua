@@ -1,4 +1,5 @@
 GearRenter = LibStub("AceAddon-3.0"):NewAddon("Gear Renter", "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
+local LibDialog = LibStub("LibDialog-1.0")
 
 local options = {
   name = "GearRenter",
@@ -252,6 +253,47 @@ function GearRenter:OnInitialize()
   GearRenterTimerFrame:SetUserPlaced(true)
   GearRenterUtil.applyDragFunctionality(GearRenterTimerFrame, GearRenter.db.profile.timer.position, defaults.profile.timer.position)
 
+  LibDialog:Register("GearRenterSellChoice", {
+    hide_on_escape = true,
+    text = "This merchant is not a conquest or honor vendor.\n\nWould you like to:",
+    checkboxes = {
+      {
+        label = "Sell all refundable conquest gear",
+        get_value = function(self, data)
+          return data.sellConquest
+        end,
+        set_value = function(self, value, data, mouseButton, down) 
+          if mouseButton == "LeftButton" then
+            data.sellConquest = not data.sellConquest
+          end
+        end
+      },
+      {
+        label = "Try to sell all refundable honor gear",
+        get_value = function(self, data)
+          return data.sellHonor
+        end,
+        set_value = function(self, value, data, mouseButton, down) 
+          if mouseButton == "LeftButton" then
+            data.sellHonor = not data.sellHonor
+          end
+        end
+      }
+    },
+    buttons = {
+      {
+        text = "Do It!",
+        on_click = function(dialog, data)
+          GearRenter:SellToGenericVendor(data.sellConquest, data.sellHonor)
+          return false
+        end
+      },
+      {
+        text = "Cancel"
+      }
+    }
+  })
+
   -- self.machine = self.statemachine.create({
   --   initial = 'none',
   --   events = {
@@ -280,6 +322,37 @@ function GearRenter:OnInitialize()
   --     end,
   --   }
   -- })
+end
+
+function GearRenter:RunQueue(countFn, total)
+  table.insert(self.queue, {function()
+    for i=1,#self.alerts do
+      self.alerts[i].shown = false
+      self.alerts[i].enteringWorld = 0
+    end
+
+    self:TimerTick()
+
+    return true
+  end})
+
+  GearRenterProgressFrame:Show();
+  GearRenterProgressFrameBar:SetMinMaxValues(0, 1)
+  GearRenterProgressFrameBar:SetValue(0)
+  local queueLen = #self.queue;
+
+  self.rentTimer = self:ScheduleRepeatingTimer(function()
+    self:NextQueue()
+
+    local progress = 1 - (#self.queue/queueLen)
+    GearRenterProgressFrameBar:SetValue(progress)
+    GearRenterProgressFrameBarText:SetText("Renting "..countFn().."/"..total.." - "..floor(progress * 100).."%")
+
+    if #self.queue <= 0 then
+      self:CancelTimer(self.rentTimer)
+      GearRenterProgressFrame:Hide();
+    end
+  end, 0.1)
 end
 
 function GearRenter:NextQueue()
@@ -514,13 +587,18 @@ function GearRenter:Rebuy()
 
   local merchCurrencies = {GetMerchantCurrencies()}
   local currencies = {}
+  local isHonorConquestVendor = false
   for _, currency in ipairs(merchCurrencies) do
-    if currency ~= CONQUEST_CURRENCY and currency ~= HONOR_CURRENCY then
-      self:Print("This merchant is not a conquest or honor vendor.")
-      return
+    if currency == CONQUEST_CURRENCY or currency == HONOR_CURRENCY then
+      name, _, _, _, _, _, _ = GetCurrencyInfo(currency)
+      currencies[name] = currency
+      isHonorConquestVendor = true
     end
-    name, _, _, _, _, _, _ = GetCurrencyInfo(currency)
-    currencies[name] = currency
+  end
+
+  if not isHonorConquestVendor then
+    LibDialog:Spawn("GearRenterSellChoice", {})
+    return
   end
 
   -- Cancel the timer if it is still going on from before.
@@ -530,7 +608,7 @@ function GearRenter:Rebuy()
   itemRentCount = 0
   itemRentTotal = 0
   for slotID=1,18 do
-    money, itemCount, refundSec, currecycount, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
+    _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
     _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)    
     if currencies[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
       itemRentTotal = itemRentTotal + 1
@@ -584,32 +662,46 @@ function GearRenter:Rebuy()
   
   -- self.machine:start()
 
-  table.insert(self.queue, {function()
-    for i=1,#self.alerts do
-      self.alerts[i].shown = false
-      self.alerts[i].enteringWorld = 0
+  self:RunQueue(function() return itemRentCount end, itemRentTotal)
+end
+
+function GearRenter:SellToGenericVendor(sellConquest, sellHonor)
+  if not MerchantFrame:IsShown() then
+    self:Print("Not at a merchant.")
+    return
+  end
+
+  if not sellConquest and not sellHonor then
+    return
+  end
+
+  -- Cancel the timer if it is still going on from before.
+  self:CancelTimer(self.rentTimer)
+
+  self.queue = {}
+  itemSellCount = 0
+  itemSellTotal = 0
+  for slotID=1,18 do
+    _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
+    _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)    
+    if ((sellConquest and currencyName == "Conquest Points") or (sellHonor and currencyName == "Honor Points")) and 
+        not(refundSec == nil) and refundSec > 0 and not hasEnchants then
+      itemSellTotal = itemSellTotal + 1
+
+      table.insert(self.queue, {function(slotID) 
+        ContainerRefundItemPurchase(-2, slotID)
+        return true
+      end, slotID})
+      table.insert(self.queue, {function(slotID)
+        if GetInventoryItemID("player", slotID) == nil then
+          itemSellCount = itemSellCount + 1
+          return true
+        end
+
+        return false 
+      end, slotID})
     end
-
-    self:TimerTick()
-
-    return true
-  end})
-
-  GearRenterProgressFrame:Show();
-  GearRenterProgressFrameBar:SetMinMaxValues(0, 1)
-  GearRenterProgressFrameBar:SetValue(0)
-  local queueLen = #self.queue;
-
-  self.rentTimer = self:ScheduleRepeatingTimer(function()
-    self:NextQueue()
-
-    local progress = 1 - (#self.queue/queueLen)
-    GearRenterProgressFrameBar:SetValue(progress)
-    GearRenterProgressFrameBarText:SetText("Renting "..itemRentCount.."/"..itemRentTotal.." - "..floor(progress * 100).."%")
-
-    if #self.queue <= 0 then
-      self:CancelTimer(self.rentTimer)
-      GearRenterProgressFrame:Hide();
-    end
-  end, 0.1)
+  end
+  
+  self:RunQueue(function() return itemSellCount end, itemSellTotal)
 end
