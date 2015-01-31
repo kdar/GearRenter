@@ -57,7 +57,7 @@
 						</Texture>
 					</Layer>
 					<Layer level="ARTWORK">
-						<Texture file="Interface\ICONS\Ability_Creature_Disease_05" name="$parentBackground">
+						<Texture file="Interface\AddOns\GearRenter\assets\icon" name="$parentBackground2">
 							<Size x="32" y="32"/>
 							<Anchors>
 								<Anchor point="TOPLEFT">
