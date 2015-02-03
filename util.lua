@@ -23,7 +23,7 @@ GearRenterUtil.applyDragFunctionality = function(self, config, default)
   df:SetScript("OnDragStop", function(self) 
     self:GetParent():StopMovingOrSizing() 
 
-    config.from, _, config.to, config.x, config.y = self:GetPoint()
+    config.from, _, config.to, config.x, config.y = self:GetParent():GetPoint()
   end)
   --dragframe texture
   local t = df:CreateTexture(nil,"OVERLAY",nil,6)
@@ -37,6 +37,7 @@ GearRenterUtil.applyDragFunctionality = function(self, config, default)
   self:SetClampedToScreen(true)
   self:SetMovable(true)
   self:SetUserPlaced(true)
+  self:SetPoint(config.from, UIParent, config.to, config.x, config.y)
   --helper functions
   --unlock
   local unlock = function(self)
@@ -65,6 +66,7 @@ GearRenterUtil.applyDragFunctionality = function(self, config, default)
   local reset = function(self)
     self:ClearAllPoints()
     self:SetPoint(default.from, UIParent, default.to, default.x, default.y)
+    config.from, config.to, config.x, config.y = default.from, default.to, default.x, default.y
 
     -- if self.defaultPosition then
     --   self:ClearAllPoints()

@@ -110,8 +110,9 @@
 				</Texture>
 			</Layer>
 		</Layers>
-		<Frames>
-			<StatusBar defaultValue="0" drawLayer="BORDER" maxValue="1" minValue="0" name="$parentBar" virtual="true">
+		
+		<Frames>			
+			<StatusBar defaultValue="0" maxValue="1" minValue="0" name="$parentBar" virtual="true">
 				<Size>
 					<AbsDimension x="195" y="20"/>
 				</Size>
@@ -173,11 +174,11 @@
 	<Frame name="GearRenterProgressFrame" parent="UIParent" inherits="GearRenterBarFrameTemplate">
 	</Frame>
 
-	<Frame name="GearRenterTimerFrame" parent="UIParent" inherits="GearRenterBarFrameTemplate">
+	<!-- <Frame name="GearRenterTimerFrame" parent="UIParent" inherits="GearRenterBarFrameTemplate">
 		<Anchors>
 			<Anchor point="TOP">
 				<Offset x="0" y="-100" />
 			</Anchor>
 		</Anchors>
-	</Frame>
+	</Frame> -->
 </Ui>

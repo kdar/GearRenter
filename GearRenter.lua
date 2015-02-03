@@ -244,14 +244,8 @@ function GearRenter:OnInitialize()
     preferredIndex = 3,  -- avoid some UI taint, see http://www.wowace.com/announcements/how-to-avoid-some-ui-taint/
   }
 
-  GearRenterTimerFrameBarText:SetText("Timer")
-  GearRenterTimerFrameBar:SetStatusBarColor(0, 0.7, 1.0, 1.0)
-  self:SetBarFrameSize(GearRenterTimerFrame, 150, 20)
-
   GearRenterProgressFrame:SetUserPlaced(true)
   GearRenterUtil.applyDragFunctionality(GearRenterProgressFrame, GearRenter.db.profile.progress.position, defaults.profile.progress.position)
-  GearRenterTimerFrame:SetUserPlaced(true)
-  GearRenterUtil.applyDragFunctionality(GearRenterTimerFrame, GearRenter.db.profile.timer.position, defaults.profile.timer.position)
 
   LibDialog:Register("GearRenterSellChoice", {
     hide_on_escape = true,
@@ -388,7 +382,7 @@ function GearRenter:OnEnable()
   end
 
   if self.db.profile.timer.enabled then
-    self:EnableTimer()
+    self:EnableTimer()    
   else
     self:DisableTimer()
   end
@@ -425,14 +419,104 @@ end
 
 function GearRenter:ResetProgressPos()
   GearRenterProgressFrame:ClearAllPoints()
-  --GearRenterProgressFrame:SetPoint("TOP", "UIParent", "TOP", 0, -160)
   GearRenterProgressFrame:reset()
 end
 
 function GearRenter:ResetTimerPos()
-  GearRenterTimerFrame:ClearAllPoints()
-  --GearRenterTimerFrame:SetPoint("TOP", "UIParent", "TOP", 0, -100)
-  GearRenterTimerFrame:reset()
+  GearRenter.timerBar.frame:ClearAllPoints()
+  GearRenter.timerBar.frame:reset()
+end
+
+function GearRenter:CreateTimerBar()
+  if self.timerBar ~= nil then
+    return
+  end
+
+  self.timerBar = {}
+
+  f = CreateFrame('Frame', nil, UIParent)
+  f:SetMovable(true)
+  f:SetFrameStrata('BACKGROUND')
+  f:SetClampedToScreen(true)
+  f:SetWidth(150)
+  f:SetHeight(20)  
+  f:SetBackdrop({bgFile = "Interface\\TargetingFrame\\UI-StatusBar",
+                 tile = true, tileSize = 16, edgeSize = 16, 
+                 insets = { left = 0, right = 0, top = 0, bottom = 0 }})
+  f:SetBackdropColor(0,0,0,0.5)
+  GearRenterUtil.applyDragFunctionality(f, GearRenter.db.profile.timer.position, defaults.profile.timer.position)
+
+  f:SetScript('OnEnter', function(self)
+    if self.tooltipText == nil then
+      return
+    end
+    GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    GameTooltip:SetText(self.tooltipText)
+    GameTooltip:Show()  
+  end)    
+  f:SetScript("OnLeave", function(self) GameTooltip:Hide() end)
+
+  self.timerBar.frame = f 
+
+  borderSize = 4
+  local border1=f:CreateTexture(nil,"BACKGROUND")
+  border1:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
+  border1:SetPoint("TOPLEFT",0,borderSize)
+  border1:SetSize(f:GetWidth(), borderSize)
+  border1:SetVertexColor(0, 0, 0, 1)
+
+  local border2=f:CreateTexture(nil,"BACKGROUND")
+  border2:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
+  border2:SetPoint("TOPLEFT",f:GetWidth(),borderSize)
+  border2:SetSize(borderSize, f:GetHeight()+(borderSize*2))
+  border2:SetVertexColor(0, 0, 0, 1)
+
+  local border3=f:CreateTexture(nil,"BACKGROUND")
+  border3:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
+  border3:SetPoint("TOPLEFT",0,-f:GetHeight())
+  border3:SetSize(f:GetWidth(), borderSize)
+  border3:SetVertexColor(0, 0, 0, 1)
+
+  local border4=f:CreateTexture(nil,"BACKGROUND")
+  border4:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
+  border4:SetPoint("TOPLEFT",-borderSize,borderSize)
+  border4:SetSize(borderSize, f:GetHeight()+(borderSize*2))
+  border4:SetVertexColor(0, 0, 0, 1)  
+
+  local value1 = CreateFrame('StatusBar', nil, self.timerBar.frame)
+  value1:EnableMouse(false)
+  value1:SetAllPoints(self.timerBar.frame)
+  --value1:SetPoint("TOPLEFT", self.timerBar.frame, "TOPLEFT", 0, -12)
+  self.timerBar.value1 = value1
+
+  local value2 = CreateFrame('StatusBar', nil, self.timerBar.value1)
+  value2:EnableMouse(false)
+  value2:SetAllPoints(self.timerBar.frame)
+  --value2:SetPoint("BOTTOMRIGHT", self.timerBar.frame, "BOTTOMRIGHT", 0, 12)
+  self.timerBar.value2 = value2
+
+  local blank = CreateFrame('StatusBar', nil, self.timerBar.value2)
+  blank:EnableMouse(false)
+  blank:SetAllPoints(self.timerBar.frame)  
+  self.timerBar.blank = blank
+
+  local text = blank:CreateFontString(nil, 'OVERLAY', 'GameFontHighlight')
+  text:SetShadowColor(0, 0, 0, 0.6)
+  text:SetShadowOffset(1.5, -1.5)
+  text:SetPoint('CENTER')
+  self.timerBar.text = text
+
+  self.timerBar.value2:SetMinMaxValues(0, 1)
+  self.timerBar.value2:SetValue(0)
+  self.timerBar.value1:SetMinMaxValues(0, 1)
+  self.timerBar.value1:SetValue(0)
+  self.timerBar.text:SetText("Renting")
+
+  self.timerBar.value2:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+  self.timerBar.value2:GetStatusBarTexture():SetHorizTile(true)
+
+  self.timerBar.value1:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+  self.timerBar.value1:GetStatusBarTexture():SetHorizTile(true)
 end
 
 function GearRenter:SetBarFrameSize(frame, width, height)
@@ -471,18 +555,30 @@ function GearRenter:UnlockProgress()
 end
 
 function GearRenter:EnableTimer()
+  self:CreateTimerBar()
+
   self.db.profile.timer.enabled = true
-  GearRenterTimerFrame:Show()
+  self.timerBar.frame:Show()
 
   self.timerTimer = self:ScheduleRepeatingTimer(self.TimerTick, 30)
   self:ScheduleTimer(self.TimerTick, 3)
+
+  self:RegisterEvent("UNIT_INVENTORY_CHANGED")
 end
 
 function GearRenter:DisableTimer()
   self.db.profile.timer.enabled = false
-  GearRenterTimerFrame:Hide()
+  self.timerBar.frame:Hide()
 
   self:CancelTimer(self.timerTimer)
+
+  self:UnregisterEvent("UNIT_INVENTORY_CHANGED")
+end
+
+function GearRenter:UNIT_INVENTORY_CHANGED(event, unit)
+  if #self.queue == 0 and unit == "player" then
+    self:TimerTick()
+  end
 end
 
 function GearRenter:TimerTick()
@@ -490,34 +586,76 @@ function GearRenter:TimerTick()
     return
   end
 
-  lowestSecs = nil
+  lowestHonorSecs = nil
+  lowestConquestSecs = nil
   for slotID=1,18 do
     -- This forces the purchase info to actually load. If you don't do this,
     -- the purchase info will sometimes come back empty. I'm not sure if
     -- there is a cleaner API to do this.
     GearRenter.fetchTooltip:SetInventoryItem("player", slotID)
-    _, _, refundSec, _, _ = GetContainerItemPurchaseInfo(-2, slotID, true)
-    if refundSec ~= nil and (lowestSecs == nil or refundSec < lowestSecs) then
-      lowestSecs = refundSec
+    _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
+    _, _, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true) 
+    if refundSec ~= nil and not hasEnchants then
+      if currencyName == "Honor Points" and (lowestHonorSecs == nil or refundSec < lowestHonorSecs) then
+        lowestHonorSecs = refundSec
+      elseif currencyName == "Conquest Points" and (lowestConquestSecs == nil or refundSec < lowestConquestSecs) then
+        lowestConquestSecs = refundSec
+      end
     end
   end
 
+  lowestSecs = lowestHonorSecs or lowestConquestSecs
+  if lowestConquestSecs ~= nil and lowestSecs ~= nil and lowestConquestSecs < lowestSecs then
+    lowestSecs = lowestConquestSecs
+  end
+
   if lowestSecs ~= nil then
-    GearRenterTimerFrame:Show();
-    GearRenterTimerFrameBar:SetMinMaxValues(0, 7200)
-    GearRenterTimerFrameBar:SetValue(lowestSecs)      
-    GearRenterTimerFrameBarText:SetText(string.format("Rent: %.2d:%.2d", lowestSecs/(60*60), lowestSecs/60%60))
+    GearRenter.timerBar.frame:Show();
+
+    bar1, bar2 = GearRenter.timerBar.value1, GearRenter.timerBar.value2
+    if lowestHonorSecs ~= nil and (lowestConquestSecs == nil or lowestHonorSecs < lowestConquestSecs) then
+      bar2, bar1 = GearRenter.timerBar.value1, GearRenter.timerBar.value2
+    end
+    bar1:SetMinMaxValues(0, 7200)
+    bar1:SetValue(lowestHonorSecs or 0)
+    --bar1:SetStatusBarColor(0, 0.7, 1.0, 0.8)
+    bar1:SetStatusBarColor(0, 0.44, 0.87, 0.8)
+    
+    bar2:SetMinMaxValues(0, 7200)
+    bar2:SetValue(lowestConquestSecs or 0)
+    bar2:SetStatusBarColor(0.64, 0.21, 0.93, 0.8)
+    --bar2:SetStatusBarColor(0.67, 0, 0.83, 0.8)
+
+    tooltip = {}
+    if lowestHonorSecs == nil then
+      table.insert(tooltip, "All honor gear has expired")
+    else
+      table.insert(tooltip, string.format("Lowest honor piece time left: %.2d:%.2d\n", lowestHonorSecs/(60*60), lowestHonorSecs/60%60))
+    end
+    table.insert(tooltip, "\n")
+    if lowestConquestSecs == nil then
+      table.insert(tooltip, "All conquest gear has expired")
+    else
+      table.insert(tooltip, string.format("Lowest conquest piece time left: %.2d:%.2d", lowestConquestSecs/(60*60), lowestConquestSecs/60%60))
+    end
+    GearRenter.timerBar.frame.tooltipText = table.concat(tooltip)
+
+    GearRenter.timerBar.text:SetText(string.format("Rent: %.2d:%.2d", lowestSecs/(60*60), lowestSecs/60%60))
+  else
+    GearRenter.timerBar.text:SetText("No rentable gear!")
+    GearRenter.timerBar.value1:SetValue(0)
+    GearRenter.timerBar.value2:SetValue(0)
   end
 end
 
 function GearRenter:LockTimer()
   GearRenter.db.profile.timer.locked = true
-  GearRenterTimerFrame:lock()
+  self.timerBar.frame:lock()
 end
 
 function GearRenter:UnlockTimer()
   GearRenter.db.profile.timer.locked = false
-  GearRenterTimerFrame:unlock()
+  self.timerBar.frame:unlock()
 end
 
 function GearRenter:PLAYER_ENTERING_WORLD()
@@ -537,19 +675,21 @@ function GearRenter:CheckExpires()
   lowestSecs = nil
   which = 1
   for slotID=1,18 do
-    _, _, refundSec, _, _ = GetContainerItemPurchaseInfo(-2, slotID, true)
+    _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
 
-    if self.db.profile.alerts[1].enabled and not self.alerts[1].shown and refundSec ~= nil and refundSec <= ((self.db.profile.alerts[1].minutes+1)*60) then
-      if lowestSecs == nil or refundSec < lowestSecs then
-        lowestSecs = refundSec
-        which = 1
+    if not hasEnchants then
+      if self.db.profile.alerts[1].enabled and not self.alerts[1].shown and refundSec ~= nil and refundSec <= ((self.db.profile.alerts[1].minutes+1)*60) then
+        if lowestSecs == nil or refundSec < lowestSecs then
+          lowestSecs = refundSec
+          which = 1
+        end
       end
-    end
 
-    if self.db.profile.alerts[2].enabled and not self.alerts[2].shown and refundSec ~= nil and refundSec <= ((self.db.profile.alerts[2].minutes+1)*60) then
-      if lowestSecs == nil or refundSec < lowestSecs then
-        lowestSecs = refundSec
-        which = 2
+      if self.db.profile.alerts[2].enabled and not self.alerts[2].shown and refundSec ~= nil and refundSec <= ((self.db.profile.alerts[2].minutes+1)*60) then
+        if lowestSecs == nil or refundSec < lowestSecs then
+          lowestSecs = refundSec
+          which = 2
+        end
       end
     end
   end
