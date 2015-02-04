@@ -568,7 +568,10 @@ end
 
 function GearRenter:DisableTimer()
   self.db.profile.timer.enabled = false
-  self.timerBar.frame:Hide()
+
+  if self.timerBar ~= nil and self.timerBar.frame ~= nil then
+    self.timerBar.frame:Hide()
+  end
 
   self:CancelTimer(self.timerTimer)
 
@@ -669,6 +672,8 @@ function GearRenter:PLAYER_ENTERING_WORLD()
       end
     end
   end
+
+  self:TimerTick()
 end
 
 function GearRenter:CheckExpires()
