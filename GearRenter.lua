@@ -653,12 +653,16 @@ end
 
 function GearRenter:LockTimer()
   GearRenter.db.profile.timer.locked = true
-  self.timerBar.frame:lock()
+  if self.timerBar ~= nil and self.timerBar.frame ~= nil then
+    self.timerBar.frame:lock()
+  end
 end
 
 function GearRenter:UnlockTimer()
   GearRenter.db.profile.timer.locked = false
-  self.timerBar.frame:unlock()
+  if self.timerBar ~= nil and self.timerBar.frame ~= nil then
+    self.timerBar.frame:unlock()
+  end
 end
 
 function GearRenter:PLAYER_ENTERING_WORLD()
