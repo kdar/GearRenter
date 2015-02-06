@@ -677,7 +677,7 @@ function GearRenter:PLAYER_ENTERING_WORLD()
     end
   end
 
-  self:TimerTick()
+  self:ScheduleTimer(self.TimerTick, 1)
 end
 
 function GearRenter:CheckExpires()
