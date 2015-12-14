@@ -13,11 +13,11 @@ local options = {
       width = 'double',
       desc = 'Enable or disable this addon.',
       get = function(info) return GearRenter.db.profile.enabled end,
-      set = function(info, val) if (val) then GearRenter:Enable() else GearRenter:Disable() end end,      
+      set = function(info, val) if (val) then GearRenter:Enable() else GearRenter:Disable() end end,
     },
     newline1 = {type = "description", order = 2, name = "\n"},
     alertHeader = {
-      order = 3, 
+      order = 3,
       type = "header",
       name = "Alerts",
     },
@@ -34,10 +34,10 @@ local options = {
           width = 'double',
           desc = 'This will pop up an alert window when one of your pieces of gear is about to expire.',
           get = function(info) return GearRenter.db.profile.alerts[1].enabled end,
-          set = function(info, val) 
+          set = function(info, val)
             GearRenter:EnableAlert(1, val)
             GearRenter.alerts[1].shown = false
-          end,          
+          end,
         },
         newline2 = {type = "description", order = 2, name = "\n"},
         alertMinutes = {
@@ -50,7 +50,7 @@ local options = {
           max = 120,
           step = 1,
           get = function(info) return GearRenter.db.profile.alerts[1].minutes end,
-          set = function(info, val) 
+          set = function(info, val)
             GearRenter.db.profile.alerts[1].minutes = val
             GearRenter.alerts[1].shown = false
           end,
@@ -71,10 +71,10 @@ local options = {
           width = 'double',
           desc = 'This will pop up an alert window when one of your pieces of gear is about to expire.',
           get = function(info) return GearRenter.db.profile.alerts[2].enabled end,
-          set = function(info, val) 
+          set = function(info, val)
             GearRenter:EnableAlert(2, val)
             GearRenter.alerts[2].shown = false
-          end,          
+          end,
         },
         newline4 = {type = "description", order = 2, name = "\n"},
         alertMinutes = {
@@ -87,7 +87,7 @@ local options = {
           max = 120,
           step = 1,
           get = function(info) return GearRenter.db.profile.alerts[2].minutes end,
-          set = function(info, val) 
+          set = function(info, val)
             GearRenter.db.profile.alerts[2].minutes = val
             GearRenter.alerts[2].shown = false
           end,
@@ -96,7 +96,7 @@ local options = {
     },
     newline5 = {type = "description", order = 7, name = "\n"},
     progressHeader = {
-      order = 8, 
+      order = 8,
       type = "header",
       name = "Progress bar",
     },
@@ -112,7 +112,7 @@ local options = {
           name = 'Lock progress',
           desc = 'Lock or unlock the progress bar.',
           get = function(info) return GearRenter.db.profile.progress.locked end,
-          set = function(info, val) 
+          set = function(info, val)
             if val then
               GearRenterProgressFrame:Hide()
               GearRenter:LockProgress()
@@ -120,7 +120,7 @@ local options = {
               GearRenterProgressFrame:Show()
               GearRenter:UnlockProgress()
             end
-          end,  
+          end,
         },
         progressResetPosition = {
           name = 'Reset position',
@@ -132,7 +132,7 @@ local options = {
     },
     newline6 = {type = "description", order = 10, name = "\n"},
     timerHeader = {
-      order = 11, 
+      order = 11,
       type = "header",
       name = "Timer",
     },
@@ -142,13 +142,13 @@ local options = {
       name = 'Enable timer',
       desc = 'Enables or disables the timer.',
       get = function(info) return GearRenter.db.profile.timer.enabled end,
-      set = function(info, val) 
-        if (val) then 
+      set = function(info, val)
+        if (val) then
           GearRenter:EnableTimer()
-        else 
+        else
           GearRenter:DisableTimer()
-        end 
-      end,  
+        end
+      end,
     },
     timerLock = {
       type = 'toggle',
@@ -156,13 +156,13 @@ local options = {
       name = 'Lock timer',
       desc = 'Lock or unlock the timer bar.',
       get = function(info) return GearRenter.db.profile.timer.locked end,
-      set = function(info, val) 
+      set = function(info, val)
         if val then
           GearRenter:LockTimer()
         else
           GearRenter:UnlockTimer()
         end
-      end,  
+      end,
     },
     timerResetPosition = {
       name = 'Reset position',
@@ -208,8 +208,8 @@ local defaults = {
   }
 }
 
-function slice(list, index) 
-  return { select(index, unpack(list)) } 
+function slice(list, index)
+  return { select(index, unpack(list)) }
 end
 
 function GearRenter:OnInitialize()
@@ -256,7 +256,7 @@ function GearRenter:OnInitialize()
         get_value = function(self, data)
           return data.sellConquest
         end,
-        set_value = function(self, value, data, mouseButton, down) 
+        set_value = function(self, value, data, mouseButton, down)
           if mouseButton == "LeftButton" then
             data.sellConquest = not data.sellConquest
           end
@@ -267,7 +267,7 @@ function GearRenter:OnInitialize()
         get_value = function(self, data)
           return data.sellHonor
         end,
-        set_value = function(self, value, data, mouseButton, down) 
+        set_value = function(self, value, data, mouseButton, down)
           if mouseButton == "LeftButton" then
             data.sellHonor = not data.sellHonor
           end
@@ -288,6 +288,20 @@ function GearRenter:OnInitialize()
     }
   })
 
+  -- LibDialog:Register("GearRenterGenericDialog", {
+  --   hide_on_escape = true,
+  --   buttons = {
+  --     {
+  --       text = "Ok",
+  --       on_click = function(dialog, data)
+  --         return false
+  --       end
+  --     }
+  --   }
+  -- })
+
+  GearRenterSets:Initialize()
+
   -- self.machine = self.statemachine.create({
   --   initial = 'none',
   --   events = {
@@ -298,19 +312,19 @@ function GearRenter:OnInitialize()
   --     --{name = 'stop', from = {'none', 'started', 'sold', 'bought', 'equipped'}, to = 'none'}
   --   },
   --   callbacks = {
-  --     onstart = function(self, event, from, to) 
+  --     onstart = function(self, event, from, to)
   --       --GearRenter:Print('start')
   --       GearRenter.machine:sell()
   --     end,
-  --     onsell = function(self, event, from, to) 
+  --     onsell = function(self, event, from, to)
   --       --GearRenter:Print('sell')
   --       GearRenter:NextQueue()
   --     end,
-  --     onbuy = function(self, event, from, to) 
+  --     onbuy = function(self, event, from, to)
   --       --GearRenter:Print('buy')
   --       GearRenter:NextQueue()
   --     end,
-  --     onequip = function(self, event, from, to) 
+  --     onequip = function(self, event, from, to)
   --       --GearRenter:Print('equip')
   --       GearRenter:NextQueue()
   --     end,
@@ -382,7 +396,7 @@ function GearRenter:OnEnable()
   end
 
   if self.db.profile.timer.enabled then
-    self:EnableTimer()    
+    self:EnableTimer()
   else
     self:DisableTimer()
   end
@@ -439,9 +453,9 @@ function GearRenter:CreateTimerBar()
   f:SetFrameStrata('BACKGROUND')
   f:SetClampedToScreen(true)
   f:SetWidth(150)
-  f:SetHeight(20)  
+  f:SetHeight(20)
   f:SetBackdrop({bgFile = "Interface\\TargetingFrame\\UI-StatusBar",
-                 tile = true, tileSize = 16, edgeSize = 16, 
+                 tile = true, tileSize = 16, edgeSize = 16,
                  insets = { left = 0, right = 0, top = 0, bottom = 0 }})
   f:SetBackdropColor(0,0,0,0.5)
   GearRenterUtil.applyDragFunctionality(f, GearRenter.db.profile.timer.position, defaults.profile.timer.position)
@@ -452,11 +466,11 @@ function GearRenter:CreateTimerBar()
     end
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
     GameTooltip:SetText(self.tooltipText)
-    GameTooltip:Show()  
-  end)    
+    GameTooltip:Show()
+  end)
   f:SetScript("OnLeave", function(self) GameTooltip:Hide() end)
 
-  self.timerBar.frame = f 
+  self.timerBar.frame = f
 
   borderSize = 4
   local border1=f:CreateTexture(nil,"BACKGROUND")
@@ -481,7 +495,7 @@ function GearRenter:CreateTimerBar()
   border4:SetTexture("Interface\\TargetingFrame\\UI-StatusBar")
   border4:SetPoint("TOPLEFT",-borderSize,borderSize)
   border4:SetSize(borderSize, f:GetHeight()+(borderSize*2))
-  border4:SetVertexColor(0, 0, 0, 1)  
+  border4:SetVertexColor(0, 0, 0, 1)
 
   local value1 = CreateFrame('StatusBar', nil, self.timerBar.frame)
   value1:EnableMouse(false)
@@ -497,7 +511,7 @@ function GearRenter:CreateTimerBar()
 
   local blank = CreateFrame('StatusBar', nil, self.timerBar.value2)
   blank:EnableMouse(false)
-  blank:SetAllPoints(self.timerBar.frame)  
+  blank:SetAllPoints(self.timerBar.frame)
   self.timerBar.blank = blank
 
   local text = blank:CreateFontString(nil, 'OVERLAY', 'GameFontHighlight')
@@ -550,7 +564,7 @@ end
 
 function GearRenter:UnlockProgress()
   GearRenter.db.profile.progress.locked = false
-  --GearRenterProgressFrame:EnableMouse(true)  
+  --GearRenterProgressFrame:EnableMouse(true)
   GearRenterProgressFrame:unlock()
 end
 
@@ -597,7 +611,7 @@ function GearRenter:TimerTick()
     -- there is a cleaner API to do this.
     GearRenter.fetchTooltip:SetInventoryItem("player", slotID)
     _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
-    _, _, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true) 
+    _, _, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
     if refundSec ~= nil and not hasEnchants then
       if currencyName == "Honor Points" and (lowestHonorSecs == nil or refundSec < lowestHonorSecs) then
         lowestHonorSecs = refundSec
@@ -623,7 +637,7 @@ function GearRenter:TimerTick()
     bar1:SetValue(lowestHonorSecs or 0)
     --bar1:SetStatusBarColor(0, 0.7, 1.0, 0.8)
     bar1:SetStatusBarColor(0, 0.44, 0.87, 0.8)
-    
+
     bar2:SetMinMaxValues(0, 7200)
     bar2:SetValue(lowestConquestSecs or 0)
     bar2:SetStatusBarColor(0.64, 0.21, 0.93, 0.8)
@@ -736,11 +750,13 @@ function GearRenter:Rebuy()
 
   local merchCurrencies = {GetMerchantCurrencies()}
   local currencies = {}
+  local currentAmounts = {}
   local isHonorConquestVendor = false
   for _, currency in ipairs(merchCurrencies) do
     if currency == CONQUEST_CURRENCY or currency == HONOR_CURRENCY then
-      name, _, _, _, _, _, _ = GetCurrencyInfo(currency)
+      name, currentAmount, _, _, _, _, _ = GetCurrencyInfo(currency)
       currencies[name] = currency
+      currentAmounts[name] = currentAmount
       isHonorConquestVendor = true
     end
   end
@@ -758,31 +774,51 @@ function GearRenter:Rebuy()
   itemRentTotal = 0
   for slotID=1,18 do
     _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
-    _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)    
+    _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
     if currencies[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
       itemRentTotal = itemRentTotal + 1
 
       local itemID = GetInventoryItemID("player", slotID)
-      _, itemLink, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)   
-      itemID = string.match(itemLink, "item:(%d+)")     
+      _, itemLink, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)
+      itemID = string.match(itemLink, "item:(%d+)")
 
       for x=1,GetMerchantNumItems() do
         --local item, _, _, _, _, _, _ = GetMerchantItemInfo(x)
         local link = GetMerchantItemLink(x)
-        local id = string.match(link, "item:(%d+)")  
+        local id = string.match(link, "item:(%d+)")
         if itemID == id then
           --self:Print(string.format("Selling/buying/equipping %s", itemName))
-          table.insert(self.queue, {function(slotID) 
-            ContainerRefundItemPurchase(-2, slotID)
-            return true
-          end, slotID})
-          table.insert(self.queue, {function(slotID)
-            return GetInventoryItemID("player", slotID) == nil
-          end, slotID})
-          table.insert(self.queue, {function(index)
-            BuyMerchantItem(index, 1)
-            return true
-          end, x})
+          -- if we have enough currency to buy this, then buy -> sell
+          if currentAmounts[currencyName] >= currencyQuantity then
+            table.insert(self.queue, {function(index)
+              BuyMerchantItem(index, 1)
+              return true
+            end, x})
+            table.insert(self.queue, {function(slotID)
+              ContainerRefundItemPurchase(-2, slotID)
+              return true
+            end, slotID})
+            table.insert(self.queue, {function(slotID)
+              return GetInventoryItemID("player", slotID) == nil
+            end, slotID})
+          else -- if we don't have enough currency to buy this, then sell -> buy
+            -- refund the item from the player slot
+            table.insert(self.queue, {function(slotID)
+              ContainerRefundItemPurchase(-2, slotID)
+              return true
+            end, slotID})
+            -- wait for it to leave the player slot in order to continue
+            table.insert(self.queue, {function(slotID)
+              return GetInventoryItemID("player", slotID) == nil
+            end, slotID})
+            -- buy the merchant item. it'll randomly go in our bags
+            table.insert(self.queue, {function(index)
+              BuyMerchantItem(index, 1)
+              return true
+            end, x})
+          end
+
+          -- find where the item is in our bags before continuing
           table.insert(self.queue, {function(itemID)
             found = false
             for bag=0, NUM_BAG_SLOTS do
@@ -795,6 +831,7 @@ function GearRenter:Rebuy()
 
             return found
           end, itemID})
+          -- equip the item. keep trying until we do
           table.insert(self.queue, {function(link, slotID)
             if GetInventoryItemID("player", slotID) ~= nil then
               itemRentCount = itemRentCount + 1
@@ -808,7 +845,7 @@ function GearRenter:Rebuy()
       end
     end
   end
-  
+
   -- self.machine:start()
 
   self:RunQueue(function() return itemRentCount end, itemRentTotal)
@@ -832,12 +869,12 @@ function GearRenter:SellToGenericVendor(sellConquest, sellHonor)
   itemSellTotal = 0
   for slotID=1,18 do
     _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
-    _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)    
-    if ((sellConquest and currencyName == "Conquest Points") or (sellHonor and currencyName == "Honor Points")) and 
+    _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
+    if ((sellConquest and currencyName == "Conquest Points") or (sellHonor and currencyName == "Honor Points")) and
         not(refundSec == nil) and refundSec > 0 and not hasEnchants then
       itemSellTotal = itemSellTotal + 1
 
-      table.insert(self.queue, {function(slotID) 
+      table.insert(self.queue, {function(slotID)
         ContainerRefundItemPurchase(-2, slotID)
         return true
       end, slotID})
@@ -847,10 +884,10 @@ function GearRenter:SellToGenericVendor(sellConquest, sellHonor)
           return true
         end
 
-        return false 
+        return false
       end, slotID})
     end
   end
-  
+
   self:RunQueue(function() return itemSellCount end, itemSellTotal)
 end
