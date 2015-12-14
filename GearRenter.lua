@@ -750,13 +750,13 @@ function GearRenter:Rebuy()
 
   local merchCurrencies = {GetMerchantCurrencies()}
   local currencies = {}
-  local currentAmounts = {}
+  local currencyAmounts = {}
   local isHonorConquestVendor = false
   for _, currency in ipairs(merchCurrencies) do
     if currency == CONQUEST_CURRENCY or currency == HONOR_CURRENCY then
       name, currentAmount, _, _, _, _, _ = GetCurrencyInfo(currency)
       currencies[name] = currency
-      currentAmounts[name] = currentAmount
+      currencyAmounts[name] = currentAmount
       isHonorConquestVendor = true
     end
   end
@@ -770,8 +770,9 @@ function GearRenter:Rebuy()
   self:CancelTimer(self.rentTimer)
 
   self.queue = {}
-  itemRentCount = 0
-  itemRentTotal = 0
+  local itemRentCount = 0
+  local itemRentTotal = 0
+  local items = {}
   for slotID=1,18 do
     _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
     _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
@@ -782,67 +783,79 @@ function GearRenter:Rebuy()
       _, itemLink, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)
       itemID = string.match(itemLink, "item:(%d+)")
 
-      for x=1,GetMerchantNumItems() do
-        --local item, _, _, _, _, _, _ = GetMerchantItemInfo(x)
-        local link = GetMerchantItemLink(x)
-        local id = string.match(link, "item:(%d+)")
-        if itemID == id then
-          --self:Print(string.format("Selling/buying/equipping %s", itemName))
-          -- if we have enough currency to buy this, then buy -> sell
-          if currentAmounts[currencyName] >= currencyQuantity then
-            table.insert(self.queue, {function(index)
-              BuyMerchantItem(index, 1)
-              return true
-            end, x})
-            table.insert(self.queue, {function(slotID)
-              ContainerRefundItemPurchase(-2, slotID)
-              return true
-            end, slotID})
-            table.insert(self.queue, {function(slotID)
-              return GetInventoryItemID("player", slotID) == nil
-            end, slotID})
-          else -- if we don't have enough currency to buy this, then sell -> buy
-            -- refund the item from the player slot
-            table.insert(self.queue, {function(slotID)
-              ContainerRefundItemPurchase(-2, slotID)
-              return true
-            end, slotID})
-            -- wait for it to leave the player slot in order to continue
-            table.insert(self.queue, {function(slotID)
-              return GetInventoryItemID("player", slotID) == nil
-            end, slotID})
-            -- buy the merchant item. it'll randomly go in our bags
-            table.insert(self.queue, {function(index)
-              BuyMerchantItem(index, 1)
-              return true
-            end, x})
-          end
+      items[itemID] = {
+        currencyName = currencyName;
+        currencyQuantity = currencyQuantity;
+        slotID = slotID;
+        itemID = itemID
+      }
+    end
+  end
 
-          -- find where the item is in our bags before continuing
-          table.insert(self.queue, {function(itemID)
-            found = false
-            for bag=0, NUM_BAG_SLOTS do
-              for bagSlot=1, GetContainerNumSlots(bag) do
-                if GetContainerItemID(bag, bagSlot) == tonumber(itemID) then
-                  found = true
-                end
-              end
-            end
+  for x=1,GetMerchantNumItems() do
+    --local item, _, _, _, _, _, _ = GetMerchantItemInfo(x)
+    local link = GetMerchantItemLink(x)
+    local id = string.match(link, "item:(%d+)")
+    if items[id] ~= nil then
+      local currencyName = items[id]["currencyName"]
+      local currencyQuantity = items[id]["currencyQuantity"]
+      local slotID = items[id]["slotID"]
+      local itemID = items[id]["itemID"]
 
-            return found
-          end, itemID})
-          -- equip the item. keep trying until we do
-          table.insert(self.queue, {function(link, slotID)
-            if GetInventoryItemID("player", slotID) ~= nil then
-              itemRentCount = itemRentCount + 1
-              return true
-            end
-
-            EquipItemByName(link, slotID)
-            return false
-          end, link, slotID})
-        end
+      --self:Print(string.format("Selling/buying/equipping %s", itemName))
+      -- if we have enough currency to buy this, then buy -> sell
+      if currencyAmounts[currencyName] >= currencyQuantity then
+        table.insert(self.queue, {function(index)
+          BuyMerchantItem(index, 1)
+          return true
+        end, x})
+        table.insert(self.queue, {function(slotID)
+          ContainerRefundItemPurchase(-2, slotID)
+          return true
+        end, slotID})
+        table.insert(self.queue, {function(slotID)
+          return GetInventoryItemID("player", slotID) == nil
+        end, slotID})
+      else -- if we don't have enough currency to buy this, then sell -> buy
+        -- refund the item from the player slot
+        table.insert(self.queue, {function(slotID)
+          ContainerRefundItemPurchase(-2, slotID)
+          return true
+        end, slotID})
+        -- wait for it to leave the player slot in order to continue
+        table.insert(self.queue, {function(slotID)
+          return GetInventoryItemID("player", slotID) == nil
+        end, slotID})
+        -- buy the merchant item. it'll randomly go in our bags
+        table.insert(self.queue, {function(index)
+          BuyMerchantItem(index, 1)
+          return true
+        end, x})
       end
+
+      -- find where the item is in our bags before continuing
+      table.insert(self.queue, {function(itemID)
+        found = false
+        for bag=0, NUM_BAG_SLOTS do
+          for bagSlot=1, GetContainerNumSlots(bag) do
+            if GetContainerItemID(bag, bagSlot) == tonumber(itemID) then
+              found = true
+            end
+          end
+        end
+
+        return found
+      end, itemID})
+      -- equip the item. keep trying until we do
+      table.insert(self.queue, {function(link, slotID)
+        if GetInventoryItemID("player", slotID) ~= nil then
+          itemRentCount = itemRentCount + 1
+          return true
+        end
+
+        EquipItemByName(link, slotID)
+        return false
+      end, link, slotID})
     end
   end
 
