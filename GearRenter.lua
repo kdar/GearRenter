@@ -907,7 +907,12 @@ function GearRenter:Rebuy()
         for bag=0, NUM_BAG_SLOTS do
           for bagSlot=1, GetContainerNumSlots(bag) do
             if GetContainerItemID(bag, bagSlot) == tonumber(itemID) then
-              found = true
+              local _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(bag, bagSlot, true)
+              -- ensure this has a refund time and has no enchants before we consider
+              -- it as found
+              if not(refundSec == nil) and refundSec > 0 and not hasEnchants then
+                found = true
+              end
             end
           end
         end
@@ -941,7 +946,13 @@ function GearRenter:Rebuy()
         for bag=0, NUM_BAG_SLOTS do
           for bagSlot=1, GetContainerNumSlots(bag) do
             if GetContainerItemID(bag, bagSlot) == tonumber(itemID) then
-              ContainerRefundItemPurchase(bag, bagSlot)
+              local _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(bag, bagSlot, true)
+              -- ensure this has a refund time and has no enchants before we sell
+              -- this back. Don't want to accidentally sell an enchanted piece
+              -- the user had in their bags.
+              if not(refundSec == nil) and refundSec > 0 and not hasEnchants then
+                ContainerRefundItemPurchase(bag, bagSlot)
+              end
             end
           end
         end
