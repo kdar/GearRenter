@@ -212,6 +212,18 @@ function slice(list, index)
   return { select(index, unpack(list)) }
 end
 
+function table_fold(list, fn)
+  local acc
+  for k, v in ipairs(list) do
+    if 1 == k then
+      acc = v
+    else
+      acc = fn(acc, v)
+    end
+  end
+  return acc
+end
+
 function GearRenter:OnInitialize()
   self.db = LibStub("AceDB-3.0"):New("GearRenterDB", defaults)
   local parent = LibStub("AceConfig-3.0"):RegisterOptionsTable("GearRenter", options, {"GearRenter", "gr"})
@@ -773,6 +785,7 @@ function GearRenter:Rebuy()
   local itemRentCount = 0
   local itemRentTotal = 0
   local items = {}
+  local preventHonorCap = nil
   for slotID=1,18 do
     _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
     _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
@@ -789,6 +802,39 @@ function GearRenter:Rebuy()
         slotID = slotID;
         itemID = itemID
       }
+
+      -- an issue occurs with honor points as it has a cap of 4000.
+      -- For example, let's say we have 2000 honor. We want to rebuy
+      -- the helmet which is 2250. We can't buy the helmet outright because
+      -- we only have 2000, and we can't sell the helmet because 2250+2000 = 4250.
+      -- Our solution is to buy some dummy items and resell them when we're done.
+      if currencyName == "Honor Points" and currencyAmounts[currencyName] < currencyQuantity and (currencyQuantity + currencyAmounts[currencyName]) > 4000 then
+        preventHonorCap = {}
+      end
+    end
+  end
+
+  -- maximally figure out what combination of items we need to buy to exhaust
+  -- the greatest amount of honor
+  if preventHonorCap ~= nil then
+    local costs = {{3500}, {2250}, {1750,1250}, {1250,1250}, {1750}, {1250}}
+
+    for x=1,#costs do
+      local sum = table_fold(costs[x], function(a, b)
+        return a + b
+      end)
+
+      if currencyAmounts["Honor Points"] >= sum then
+        preventHonorCap = {
+          costs = costs[x];
+          items = {} --items we will buy at the start of the queue, and sell at the end
+        }
+
+        -- adjust the currency amounts for honor so when we test for currency
+        -- in adding queue items below, it gets the right value.
+        currencyAmounts["Honor Points"] = currencyAmounts["Honor Points"] - sum
+        break
+      end
     end
   end
 
@@ -796,6 +842,28 @@ function GearRenter:Rebuy()
     --local item, _, _, _, _, _, _ = GetMerchantItemInfo(x)
     local link = GetMerchantItemLink(x)
     local id = string.match(link, "item:(%d+)")
+
+    -- prevent honor capping
+    if preventHonorCap ~= nil and #preventHonorCap["costs"] ~= 0 then
+      local _, itemValue, _, _ = GetMerchantItemCostItem(x, 1)
+      local maxStack = GetMerchantItemMaxStack(x)
+
+      -- we don't want to buy reagents. so skip things that have stack != 1
+      if maxStack == 1 then
+        -- find items we can purchase to prevent cap
+        for i=1,#preventHonorCap["costs"] do
+          if itemValue == preventHonorCap["costs"][i] then
+            table.insert(preventHonorCap["items"], {
+              merchantIndex = x;
+              itemID = id
+            })
+            table.remove(preventHonorCap["costs"], i)
+            break
+          end
+        end
+      end
+    end
+
     if items[id] ~= nil then
       local currencyName = items[id]["currencyName"]
       local currencyQuantity = items[id]["currencyQuantity"]
@@ -859,7 +927,29 @@ function GearRenter:Rebuy()
     end
   end
 
-  -- self.machine:start()
+  -- adjust the queue so we buy extra honor items and sell them afterwards
+  if preventHonorCap ~= nil then
+    for x=1,#preventHonorCap["items"] do
+      -- insert buying at beginning of queue
+      table.insert(self.queue, 1, {function(index)
+        BuyMerchantItem(index, 1)
+        return true
+      end, preventHonorCap["items"][x]["merchantIndex"]})
+
+      -- insert selling at end of queue
+      table.insert(self.queue, {function(itemID)
+        for bag=0, NUM_BAG_SLOTS do
+          for bagSlot=1, GetContainerNumSlots(bag) do
+            if GetContainerItemID(bag, bagSlot) == tonumber(itemID) then
+              ContainerRefundItemPurchase(bag, bagSlot)
+            end
+          end
+        end
+
+        return true
+      end, preventHonorCap["items"][x]["itemID"]})
+    end
+  end
 
   self:RunQueue(function() return itemRentCount end, itemRentTotal)
 end
