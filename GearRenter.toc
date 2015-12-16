@@ -4,7 +4,7 @@
 ## SavedVariables: GearRenterDB
 ## Author: Outroot
 ## Version: 1.04
-## X-Curse-Packaged-Version: v1.1.1
+## X-Curse-Packaged-Version: v1.1.2
 ## X-Curse-Project-Name: GearRenter
 ## X-Curse-Project-ID: gear-renter
 ## X-Curse-Repository-ID: wow/GearRenter/mainline
