@@ -300,18 +300,6 @@ function GearRenter:OnInitialize()
     }
   })
 
-  -- LibDialog:Register("GearRenterGenericDialog", {
-  --   hide_on_escape = true,
-  --   buttons = {
-  --     {
-  --       text = "Ok",
-  --       on_click = function(dialog, data)
-  --         return false
-  --       end
-  --     }
-  --   }
-  -- })
-
   GearRenterSets:Initialize()
 
   -- self.machine = self.statemachine.create({
@@ -785,33 +773,49 @@ function GearRenter:Rebuy()
   local itemRentCount = 0
   local itemRentTotal = 0
   local items = {}
-  local preventHonorCap = nil
+  local preventHonorCap = nil -- a table containing data to prevent honor capping
+  local impossible = {} -- a table containing items that are impossible to sell/buy
   for slotID=1,18 do
-    _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
-    _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
-    if currencies[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
-      itemRentTotal = itemRentTotal + 1
+    repeat -- start of ghetto "continue"
+      _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(-2, slotID, true)
+      _, currencyQuantity, currencyName = GetContainerItemPurchaseCurrency(-2, slotID, 1, true)
 
-      local itemID = GetInventoryItemID("player", slotID)
-      _, itemLink, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)
-      itemID = string.match(itemLink, "item:(%d+)")
+      if currencies[currencyName] ~= nil and not(refundSec == nil) and refundSec > 0 and not hasEnchants then
+        local itemID = GetInventoryItemID("player", slotID)
+        _, itemLink, _, _, _, _, _, _, _, _, _ = GetItemInfo(itemID)
+        itemID = string.match(itemLink, "item:(%d+)")
 
-      items[itemID] = {
-        currencyName = currencyName;
-        currencyQuantity = currencyQuantity;
-        slotID = slotID;
-        itemID = itemID
-      }
+        -- this situation is impossible for GearRenter to do anything. We don't have enough
+        -- honor to buy the item, and selling it will make us go over the 4k cap. We also
+        -- can't use our trick to purchase a temporary item because we don't have at least 1250
+        -- honor (the minimum price the vendors sell at the moment).
+        -- Really this situation only happens with weapons with 3500 honor cost.
+        if currencyAmounts[currencyName] < 1250 and currencyAmounts[currencyName] < currencyQuantity and (currencyQuantity + currencyAmounts[currencyName]) > 4000 then
+          table.insert(impossible, {
+            link = itemLink;
+          })
+          break
+        end
 
-      -- an issue occurs with honor points as it has a cap of 4000.
-      -- For example, let's say we have 2000 honor. We want to rebuy
-      -- the helmet which is 2250. We can't buy the helmet outright because
-      -- we only have 2000, and we can't sell the helmet because 2250+2000 = 4250.
-      -- Our solution is to buy some dummy items and resell them when we're done.
-      if currencyName == "Honor Points" and currencyAmounts[currencyName] < currencyQuantity and (currencyQuantity + currencyAmounts[currencyName]) > 4000 then
-        preventHonorCap = {}
+        items[itemID] = {
+          currencyName = currencyName;
+          currencyQuantity = currencyQuantity;
+          slotID = slotID;
+          itemID = itemID
+        }
+
+        -- an issue occurs with honor points as it has a cap of 4000.
+        -- For example, let's say we have 2000 honor. We want to rebuy
+        -- the helmet which is 2250. We can't buy the helmet outright because
+        -- we only have 2000, and we can't sell the helmet because 2250+2000 = 4250.
+        -- Our solution is to buy some dummy items and resell them when we're done.
+        if currencyName == "Honor Points" and currencyAmounts[currencyName] < currencyQuantity and (currencyQuantity + currencyAmounts[currencyName]) > 4000 then
+          preventHonorCap = {}
+        end
+
+        itemRentTotal = itemRentTotal + 1
       end
-    end
+    until true -- end of ghetto "continue"
   end
 
   -- maximally figure out what combination of items we need to buy to exhaust
@@ -963,6 +967,28 @@ function GearRenter:Rebuy()
   end
 
   self:RunQueue(function() return itemRentCount end, itemRentTotal)
+
+  if #impossible > 0 then
+    local delegate = {
+      hide_on_escape = true,
+      buttons = {
+        {
+          text = "Ok",
+          on_click = function(dialog, data)
+            return false
+          end
+        }
+      }
+    }
+
+    delegate["text"] = "GearRenter cannot buy/sell the items below. You need to either get your honor to 500 or less, or 1250 or more for GearRenter to function properly.\n\n"
+
+    for x=1,#impossible do
+      delegate["text"] = delegate["text"] .. impossible[x]["link"] .. "\n"
+    end
+
+    LibDialog:Spawn(delegate, {})
+  end
 end
 
 function GearRenter:SellToGenericVendor(sellConquest, sellHonor)
