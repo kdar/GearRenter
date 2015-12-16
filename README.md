@@ -11,7 +11,8 @@ WoW addon that assists in renting PVP gear. This is useful because an item can d
 
 ### Notes
 
-This will not sell gear that has enchants on it. 
+1. If you buy a 3500 cost honor weapon, note that unless you have 500 or less honor, or 1250 or greater honor, you will not be able to rent it. The reason is there is a 4000 honor cap. For example, if you have 600 honor, then there is no way to sell the 3500 piece because it will go over the cap. At 1250 or greater we can buy a temporary piece so the 3500 weapon can be purchased.
+2. This will not sell gear that has enchants on it.
 
 ### Who made it?
 
