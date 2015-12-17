@@ -1,6 +1,6 @@
 ## Interface: 60000
 ## Title: GearRenter
-## Notes: Helps in buying/selling gear to keep it on rent.
+## Notes: Helps in buying/selling honor/conquest gear to keep it on rent.
 ## SavedVariables: GearRenterDB
 ## Author: Outroot
 ## Version: 1.1.2

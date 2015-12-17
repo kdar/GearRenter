@@ -300,7 +300,7 @@ function GearRenter:OnInitialize()
     }
   })
 
-  GearRenterSets:Initialize()
+  -- GearRenterSets:Initialize()
 
   -- self.machine = self.statemachine.create({
   --   initial = 'none',
