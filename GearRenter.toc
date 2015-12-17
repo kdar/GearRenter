@@ -3,7 +3,7 @@
 ## Notes: Helps in buying/selling gear to keep it on rent.
 ## SavedVariables: GearRenterDB
 ## Author: Outroot
-## Version: 1.04
+## Version: 1.1.2
 ## X-Curse-Packaged-Version: v1.1.2
 ## X-Curse-Project-Name: GearRenter
 ## X-Curse-Project-ID: gear-renter
