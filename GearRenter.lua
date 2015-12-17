@@ -821,7 +821,7 @@ function GearRenter:Rebuy()
   -- maximally figure out what combination of items we need to buy to exhaust
   -- the greatest amount of honor
   if preventHonorCap ~= nil then
-    local costs = {{3500}, {2250}, {1750,1250}, {1250,1250}, {1750}, {1250}}
+    local costs = {{3500}, {1750,1250}, {1250,1250}, {2250}, {1750}, {1250}}
 
     for x=1,#costs do
       local sum = table_fold(costs[x], function(a, b)
