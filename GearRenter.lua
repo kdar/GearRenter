@@ -1,6 +1,8 @@
 GearRenter = LibStub("AceAddon-3.0"):NewAddon("Gear Renter", "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
 local LibDialog = LibStub("LibDialog-1.0")
 
+local DEBUG = false
+
 local options = {
   name = "GearRenter",
   handler = GearRenter,
@@ -743,6 +745,11 @@ function GearRenter:Rebuy_OnClick()
 end
 
 function GearRenter:Rebuy()
+  if DEBUG then
+    GearRenterDebugFrame:Show()
+    self:Print(GearRenterDebugScrollingMessageFrame, string.format("----------------------------"))
+  end
+
   if not MerchantFrame:IsShown() then
     self:Print("Not at a merchant.")
     return
@@ -804,6 +811,10 @@ function GearRenter:Rebuy()
           itemID = itemID
         }
 
+        if DEBUG then
+          self:Print(GearRenterDebugScrollingMessageFrame, string.format("Found item: %s", itemLink))
+        end
+
         -- an issue occurs with honor points as it has a cap of 4000.
         -- For example, let's say we have 2000 honor. We want to rebuy
         -- the helmet which is 2250. We can't buy the helmet outright because
@@ -811,6 +822,10 @@ function GearRenter:Rebuy()
         -- Our solution is to buy some dummy items and resell them when we're done.
         if currencyName == "Honor Points" and currencyAmounts[currencyName] < currencyQuantity and (currencyQuantity + currencyAmounts[currencyName]) > 4000 then
           preventHonorCap = {}
+
+          if DEBUG then
+            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Item will cause honor cap: %s", itemLink))
+          end
         end
 
         itemRentTotal = itemRentTotal + 1
@@ -837,6 +852,10 @@ function GearRenter:Rebuy()
         -- adjust the currency amounts for honor so when we test for currency
         -- in adding queue items below, it gets the right value.
         currencyAmounts["Honor Points"] = currencyAmounts["Honor Points"] - sum
+
+        if DEBUG then
+          self:Print(GearRenterDebugScrollingMessageFrame, string.format("Preventing honor cap costs: %d+%d = %d", costs[1], costs[2], sum))
+        end
         break
       end
     end
@@ -862,6 +881,10 @@ function GearRenter:Rebuy()
               itemID = id
             })
             table.remove(preventHonorCap["costs"], i)
+
+            if DEBUG then
+              self:Print(GearRenterDebugScrollingMessageFrame, string.format("Preventing honor cap item: %s", GetMerchantItemLink(x)))
+            end
             break
           end
         end
@@ -879,10 +902,16 @@ function GearRenter:Rebuy()
       if currencyAmounts[currencyName] >= currencyQuantity then
         table.insert(self.queue, {function(index)
           BuyMerchantItem(index, 1)
+          if DEBUG then
+            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Buying: %s", GetMerchantItemLink(index)))
+          end
           return true
         end, x})
         table.insert(self.queue, {function(slotID)
           ContainerRefundItemPurchase(-2, slotID)
+          if DEBUG then
+            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Refunding: %s", GetContainerItemLink(-2, slotID)))
+          end
           return true
         end, slotID})
         table.insert(self.queue, {function(slotID)
@@ -892,6 +921,9 @@ function GearRenter:Rebuy()
         -- refund the item from the player slot
         table.insert(self.queue, {function(slotID)
           ContainerRefundItemPurchase(-2, slotID)
+          if DEBUG then
+            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Refunding: %s", GetContainerItemLink(-2, slotID)))
+          end
           return true
         end, slotID})
         -- wait for it to leave the player slot in order to continue
@@ -901,6 +933,9 @@ function GearRenter:Rebuy()
         -- buy the merchant item. it'll randomly go in our bags
         table.insert(self.queue, {function(index)
           BuyMerchantItem(index, 1)
+          if DEBUG then
+            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Buying: %s", GetMerchantItemLink(index)))
+          end
           return true
         end, x})
       end
@@ -927,6 +962,9 @@ function GearRenter:Rebuy()
       table.insert(self.queue, {function(link, slotID)
         if GetInventoryItemID("player", slotID) ~= nil then
           itemRentCount = itemRentCount + 1
+          if DEBUG then
+            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Equipped: %s", GetContainerItemLink(-2, slotID)))
+          end
           return true
         end
 
@@ -942,6 +980,9 @@ function GearRenter:Rebuy()
       -- insert buying at beginning of queue
       table.insert(self.queue, 1, {function(index)
         BuyMerchantItem(index, 1)
+        if DEBUG then
+          self:Print(GearRenterDebugScrollingMessageFrame, string.format("Buying cap item: %s", GetMerchantItemLink(index)))
+        end
         return true
       end, preventHonorCap["items"][x]["merchantIndex"]})
 
@@ -956,6 +997,9 @@ function GearRenter:Rebuy()
               -- the user had in their bags.
               if not(refundSec == nil) and refundSec > 0 and not hasEnchants then
                 ContainerRefundItemPurchase(bag, bagSlot)
+                if DEBUG then
+                  self:Print(GearRenterDebugScrollingMessageFrame, string.format("Refunding cap item: %s", GetContainerItemLink(bag, bagSlot)))
+                end
               end
             end
           end

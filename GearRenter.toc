@@ -11,5 +11,6 @@
 
 embeds.xml
 util.lua
+debug.lua
 GearRenter.lua
 GearRenter.xml
