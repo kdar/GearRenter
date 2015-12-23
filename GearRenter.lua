@@ -797,7 +797,7 @@ function GearRenter:Rebuy()
         -- can't use our trick to purchase a temporary item because we don't have at least 1250
         -- honor (the minimum price the vendors sell at the moment).
         -- Really this situation only happens with weapons with 3500 honor cost.
-        if currencyAmounts[currencyName] < 1250 and currencyAmounts[currencyName] < currencyQuantity and (currencyQuantity + currencyAmounts[currencyName]) > 4000 then
+        if currencyName == "Honor Points" and currencyAmounts[currencyName] < 1250 and currencyAmounts[currencyName] < currencyQuantity and (currencyQuantity + currencyAmounts[currencyName]) > 4000 then
           table.insert(impossible, {
             link = itemLink;
           })
