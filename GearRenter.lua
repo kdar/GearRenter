@@ -827,8 +827,6 @@ function GearRenter:Rebuy()
             self:Print(GearRenterDebugScrollingMessageFrame, string.format("Item will cause honor cap: %s", itemLink))
           end
         end
-
-        itemRentTotal = itemRentTotal + 1
       end
     until true -- end of ghetto "continue"
   end
@@ -897,9 +895,11 @@ function GearRenter:Rebuy()
       local slotID = items[id]["slotID"]
       local itemID = items[id]["itemID"]
 
+      itemRentTotal = itemRentTotal + 1
+
       --self:Print(string.format("Selling/buying/equipping %s", itemName))
-      -- if we have enough currency to buy this, then buy -> sell
-      if currencyAmounts[currencyName] >= currencyQuantity then
+      -- if we have enough honor currency to buy this, then buy -> sell
+      if currencyName == "Honor Points" and currencyAmounts[currencyName] >= currencyQuantity then
         table.insert(self.queue, {function(index)
           BuyMerchantItem(index, 1)
           if DEBUG then
