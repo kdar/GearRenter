@@ -745,6 +745,8 @@ function GearRenter:Rebuy_OnClick()
 end
 
 function GearRenter:Rebuy()
+  local gr = self
+
   if DEBUG then
     GearRenterDebugFrame:Show()
     self:Print(GearRenterDebugScrollingMessageFrame, string.format("----------------------------"))
@@ -801,15 +803,20 @@ function GearRenter:Rebuy()
           table.insert(impossible, {
             link = itemLink;
           })
-          break
+          break -- actually a continue
         end
 
-        items[itemID] = {
-          currencyName = currencyName;
-          currencyQuantity = currencyQuantity;
-          slotID = slotID;
-          itemID = itemID
-        }
+        if items[itemID] ~= nil then
+          -- we could be buying multiples of the same item (like two one-handed swords)
+          table.insert(items[itemID]["slotIDs"], slotID)
+        else
+          items[itemID] = {
+            currencyName = currencyName;
+            currencyQuantity = currencyQuantity;
+            slotIDs = {slotID};
+            itemID = itemID
+          }
+        end
 
         if DEBUG then
           self:Print(GearRenterDebugScrollingMessageFrame, string.format("Found item: %s", itemLink))
@@ -890,87 +897,91 @@ function GearRenter:Rebuy()
     end
 
     if items[id] ~= nil then
-      local currencyName = items[id]["currencyName"]
-      local currencyQuantity = items[id]["currencyQuantity"]
-      local slotID = items[id]["slotID"]
-      local itemID = items[id]["itemID"]
+      for _,slotID in pairs(items[id]["slotIDs"]) do
+        local currencyName = items[id]["currencyName"]
+        local currencyQuantity = items[id]["currencyQuantity"]
+        --local slotID = items[id]["slotID"]
+        local itemID = items[id]["itemID"]
 
-      itemRentTotal = itemRentTotal + 1
+        itemRentTotal = itemRentTotal + 1
 
-      --self:Print(string.format("Selling/buying/equipping %s", itemName))
-      -- if we have enough honor currency to buy this, then buy -> sell
-      if currencyName == "Honor Points" and currencyAmounts[currencyName] >= currencyQuantity then
-        table.insert(self.queue, {function(index)
-          BuyMerchantItem(index, 1)
-          if DEBUG then
-            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Buying: %s", GetMerchantItemLink(index)))
-          end
-          return true
-        end, x})
-        table.insert(self.queue, {function(slotID)
-          ContainerRefundItemPurchase(-2, slotID)
-          if DEBUG then
-            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Refunding: %s", GetContainerItemLink(-2, slotID)))
-          end
-          return true
-        end, slotID})
-        table.insert(self.queue, {function(slotID)
-          return GetInventoryItemID("player", slotID) == nil
-        end, slotID})
-      else -- if we don't have enough currency to buy this, then sell -> buy
-        -- refund the item from the player slot
-        table.insert(self.queue, {function(slotID)
-          ContainerRefundItemPurchase(-2, slotID)
-          if DEBUG then
-            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Refunding: %s", GetContainerItemLink(-2, slotID)))
-          end
-          return true
-        end, slotID})
-        -- wait for it to leave the player slot in order to continue
-        table.insert(self.queue, {function(slotID)
-          return GetInventoryItemID("player", slotID) == nil
-        end, slotID})
-        -- buy the merchant item. it'll randomly go in our bags
-        table.insert(self.queue, {function(index)
-          BuyMerchantItem(index, 1)
-          if DEBUG then
-            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Buying: %s", GetMerchantItemLink(index)))
-          end
-          return true
-        end, x})
-      end
+        --self:Print(string.format("Selling/buying/equipping %s", itemName))
+        -- if we have enough honor currency to buy this, then buy -> sell
+        if currencyName == "Honor Points" and currencyAmounts[currencyName] >= currencyQuantity then
+          table.insert(self.queue, {function(index, itemID)
+            BuyMerchantItem(index)
+            if DEBUG then
+              self:Print(GearRenterDebugScrollingMessageFrame, string.format("Buying: %s", GetMerchantItemLink(index)))
+            end
 
-      -- find where the item is in our bags before continuing
-      table.insert(self.queue, {function(itemID)
-        found = false
-        for bag=0, NUM_BAG_SLOTS do
-          for bagSlot=1, GetContainerNumSlots(bag) do
-            if GetContainerItemID(bag, bagSlot) == tonumber(itemID) then
-              local _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(bag, bagSlot, true)
-              -- ensure this has a refund time and has no enchants before we consider
-              -- it as found
-              if not(refundSec == nil) and refundSec > 0 and not hasEnchants then
-                found = true
+            return true
+          end, x, itemID})
+          table.insert(self.queue, {function(slotID)
+            ContainerRefundItemPurchase(-2, slotID)
+            if DEBUG then
+              self:Print(GearRenterDebugScrollingMessageFrame, string.format("Refunding: %s", GetContainerItemLink(-2, slotID) or "NOTFOUND"))
+            end
+            return true
+          end, slotID})
+          table.insert(self.queue, {function(slotID)
+            return GetInventoryItemID("player", slotID) == nil
+          end, slotID})
+        else -- if we don't have enough currency to buy this, then sell -> buy
+          -- refund the item from the player slot
+          table.insert(self.queue, {function(slotID)
+            ContainerRefundItemPurchase(-2, slotID)
+            if DEBUG then
+              self:Print(GearRenterDebugScrollingMessageFrame, string.format("Refunding: %s", GetContainerItemLink(-2, slotID) or "NOTFOUND"))
+            end
+            return true
+          end, slotID})
+          table.insert(self.queue, {function(slotID)
+            return GetInventoryItemID("player", slotID) == nil
+          end, slotID})
+          -- buy the merchant item. it'll randomly go in our bags
+          table.insert(self.queue, {function(index)
+            BuyMerchantItem(index)
+            if DEBUG then
+              self:Print(GearRenterDebugScrollingMessageFrame, string.format("Buying: %s", GetMerchantItemLink(index)))
+            end
+            return true
+          end, x, itemID})
+        end
+
+        -- check to make sure we bought it before continuing
+        table.insert(self.queue, {function(link, slotID)
+          found = false
+          for bag=0, NUM_BAG_SLOTS do
+            for bagSlot=1, GetContainerNumSlots(bag) do
+              if GetContainerItemID(bag, bagSlot) == tonumber(itemID) then
+                local _, _, refundSec, _, hasEnchants = GetContainerItemPurchaseInfo(bag, bagSlot, true)
+                -- ensure this has a refund time and has no enchants before we consider
+                -- it as found
+                if not(refundSec == nil) and refundSec > 0 and not hasEnchants then
+                  found = true
+                  break
+                end
               end
             end
           end
-        end
 
-        return found
-      end, itemID})
-      -- equip the item. keep trying until we do
-      table.insert(self.queue, {function(link, slotID)
-        if GetInventoryItemID("player", slotID) ~= nil then
-          itemRentCount = itemRentCount + 1
-          if DEBUG then
-            self:Print(GearRenterDebugScrollingMessageFrame, string.format("Equipped: %s", GetContainerItemLink(-2, slotID)))
+          return found
+        end, itemID})
+
+        -- equip the item. keep trying until we do
+        table.insert(self.queue, {function(link, slotID)
+          if GetInventoryItemID("player", slotID) ~= nil then
+            itemRentCount = itemRentCount + 1
+            if DEBUG then
+              self:Print(GearRenterDebugScrollingMessageFrame, string.format("Equipped: %s", GetContainerItemLink(-2, slotID)))
+            end
+            return true
           end
-          return true
-        end
 
-        EquipItemByName(link, slotID)
-        return false
-      end, link, slotID})
+          EquipItemByName(link, slotID)
+          return false
+        end, link, slotID})
+      end
     end
   end
 
@@ -1004,10 +1015,22 @@ function GearRenter:Rebuy()
             end
           end
         end
-
         return true
       end, preventHonorCap["items"][x]["itemID"]})
     end
+  end
+
+  -- hide the error frame because there could be a lot of errors
+  if UIErrorsFrame:IsVisible() then
+    table.insert(self.queue, 1, {function()
+      UIErrorsFrame:Hide()
+      return true
+    end})
+    table.insert(self.queue, {function()
+      UIErrorsFrame:Clear()
+      UIErrorsFrame:Show()
+      return true
+    end})
   end
 
   self:RunQueue(function() return itemRentCount end, itemRentTotal)
