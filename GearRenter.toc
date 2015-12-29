@@ -3,8 +3,8 @@
 ## Notes: Helps in buying/selling honor/conquest gear to keep it on rent.
 ## SavedVariables: GearRenterDB
 ## Author: Outroot
-## Version: 1.1.5
-## X-Curse-Packaged-Version: v1.1.5
+## Version: 1.1.6
+## X-Curse-Packaged-Version: v1.1.6
 ## X-Curse-Project-Name: GearRenter
 ## X-Curse-Project-ID: gear-renter
 ## X-Curse-Repository-ID: wow/GearRenter/mainline
