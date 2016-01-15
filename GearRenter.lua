@@ -303,35 +303,6 @@ function GearRenter:OnInitialize()
   })
 
   -- GearRenterSets:Initialize()
-
-  -- self.machine = self.statemachine.create({
-  --   initial = 'none',
-  --   events = {
-  --     {name = 'start', from = {'none', 'started', 'sold', 'bought', 'equipped'}, to = 'started'},
-  --     {name = 'sell', from = 'started', to = 'sold'},
-  --     {name = 'buy', from = 'sold', to = 'bought'},
-  --     {name = 'equip', from = 'bought', to = 'equipped'},
-  --     --{name = 'stop', from = {'none', 'started', 'sold', 'bought', 'equipped'}, to = 'none'}
-  --   },
-  --   callbacks = {
-  --     onstart = function(self, event, from, to)
-  --       --GearRenter:Print('start')
-  --       GearRenter.machine:sell()
-  --     end,
-  --     onsell = function(self, event, from, to)
-  --       --GearRenter:Print('sell')
-  --       GearRenter:NextQueue()
-  --     end,
-  --     onbuy = function(self, event, from, to)
-  --       --GearRenter:Print('buy')
-  --       GearRenter:NextQueue()
-  --     end,
-  --     onequip = function(self, event, from, to)
-  --       --GearRenter:Print('equip')
-  --       GearRenter:NextQueue()
-  --     end,
-  --   }
-  -- })
 end
 
 function GearRenter:RunQueue(countFn, total)
@@ -838,6 +809,10 @@ function GearRenter:Rebuy()
     until true -- end of ghetto "continue"
   end
 
+  -- How many free bag slots we need to rebuy everything.
+  -- 1 for the item we're buying/selling at a time.
+  local neededFreeSlots = 1
+
   -- maximally figure out what combination of items we need to buy to exhaust
   -- the greatest amount of honor
   if preventHonorCap ~= nil then
@@ -849,6 +824,9 @@ function GearRenter:Rebuy()
       end)
 
       if currencyAmounts["Honor Points"] >= sum then
+        -- update how many free bag slots we need
+        neededFreeSlots = neededFreeSlots + #costs[x]
+
         preventHonorCap = {
           costs = costs[x];
           items = {} --items we will buy at the start of the queue, and sell at the end
@@ -864,6 +842,34 @@ function GearRenter:Rebuy()
         break
       end
     end
+  end
+
+  -- check for available bag space
+  local totalFreeSlots = 0
+  for bag=0, NUM_BAG_SLOTS do
+    local freeSlots, typ = GetContainerNumFreeSlots(bag)
+    if typ == 0 then
+      totalFreeSlots = totalFreeSlots + freeSlots
+    end
+  end
+
+  if totalFreeSlots < neededFreeSlots then
+    local delegate = {
+      hide_on_escape = true,
+      buttons = {
+        {
+          text = "Ok",
+          on_click = function(dialog, data)
+            return false
+          end
+        }
+      }
+    }
+
+    delegate["text"] = string.format("Not enough free bag slots!\n\nNeed %d, you have %d.\n", neededFreeSlots, totalFreeSlots)
+
+    LibDialog:Spawn(delegate, {})
+    return
   end
 
   for x=1,GetMerchantNumItems() do
